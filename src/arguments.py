@@ -52,7 +52,7 @@ def setup_arguments():
 
     ##################### Output arguments.
     # Add the output file argument
-    ap.add_argument("-o", "--output", type=str, default="saved_frame_data.csv",
+    ap.add_argument("-o", "--output", type=str, default="./output/saved_frame_data.csv",
                      help="Output file name")    
 
     # Add an option to record the video
