@@ -13,6 +13,13 @@ def copy_csv_to_excel(csv_file, excel_file):
     except Exception as e:
         logging.error("Error copying CSV to Excel: " + str(e))
 
+def change_extension(file_path, extension="csv"):
+    # Split the path into the name and extension
+    
+    base_name, _ = file_path.rsplit('.', 1)
+    # Define the new extension
+    new_file_path = f"{base_name}.{extension}"    
+    return new_file_path
 
 def add_extension(filename, extension=".csv"):
     basename, ext = os.path.splitext(filename)
@@ -42,6 +49,25 @@ def create_directory(directory_path):
     if not os.path.exists(directory_path):
         os.makedirs(directory_path)
 
+
+def could_be_directory(path):
+
+    if( os.path.isdir(path)):
+        return True
+
+    # Normalize the path to use the correct separators and remove any trailing separators
+    normalized_path = os.path.normpath(path)
+
+    # Check if the path has any system-reserved characters (simplified example)
+    invalid_chars = ['<', '>', ':', '"', '|', '?', '*']
+    if any(char in path for char in invalid_chars):
+        return False
+
+    # Check for multiple segments in the path, which are more indicative of a directory structure
+    segments = normalized_path.split(os.sep)
+    
+    # Return true if there are multiple segments, suggesting a directory-like structure
+    return len(segments) > 1
 
 
 def setup_fullpath_to_timestamp_output(output_filename, add_timestamp, directory="../records/"):

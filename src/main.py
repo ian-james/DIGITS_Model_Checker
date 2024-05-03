@@ -17,7 +17,9 @@ from arguments import setup_arguments
 from log import set_log_level
 from mediapipe_helpers import *
 
-from ultralytics import YOLO
+from convert_mediapipe_index import convert_all_columns_to_friendly_name
+from file_utils import add_extension, change_extension,create_directory, could_be_directory
+#from ultralytics import YOLO
 
 class WindowName(Enum):
     ORIGINAL = auto()
@@ -38,8 +40,51 @@ def handle_keyboard():
         return False
     elif key == ord('p'):
         cv2.waitKey()
-        
+
     return True
+
+def process_frame_from_image(image_file, frames_to_run, frame_processor, show_visual=True):
+
+    # Setup Display
+    if(show_visual):
+        for window_name in WindowName:
+            cv2.namedWindow(window_name.name, cv2.WINDOW_NORMAL)
+            cv2.resizeWindow(window_name.name, 600,400)
+
+        cv2.moveWindow(WindowName.ORIGINAL.name,0,0)
+        cv2.moveWindow(WindowName.LANDMARKS.name,0,400)
+        cv2.moveWindow(WindowName.ENHANCED.name,600,0)
+        cv2.moveWindow(WindowName.STATUS.name,600,400)
+
+    fps = FPS()
+    fps.start()
+
+    for i in range(frames_to_run):
+
+        image = cv2.imread(image_file)
+        if image is None:
+            logging.error(f"Failed to read image: {image_file}")
+            return
+
+        fps.update()
+
+        if(show_visual):
+            cv2.imshow(WindowName.ORIGINAL.name, image)
+        bimage = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+        if(show_visual):
+            cv2.imshow(WindowName.ENHANCED.name, bimage)
+
+        results, rimage = frame_processor.process_frame(bimage,fps.total_num_frames)
+        if(show_visual):
+            cv2.imshow(WindowName.LANDMARKS.name, rimage)
+        limage = cv2.cvtColor(rimage, cv2.COLOR_RGB2BGR)
+
+        if(show_visual):
+            cv2.imshow(WindowName.STATUS.name, limage)
+
+    frame_processor.finalize_dataframe()
+
 
 def process_frame_from_cap(cap, frame_processor, show_visual=True):
 
@@ -73,14 +118,14 @@ def process_frame_from_cap(cap, frame_processor, show_visual=True):
         if(show_visual):
             cv2.imshow(WindowName.ORIGINAL.name, image)
         bimage = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        
+
         if(show_visual):
             cv2.imshow(WindowName.ENHANCED.name, bimage)
 
         results, rimage = frame_processor.process_frame(bimage,fps.total_num_frames)
         if(show_visual):
-            cv2.imshow(WindowName.LANDMARKS.name, rimage)  
-        limage = cv2.cvtColor(rimage, cv2.COLOR_RGB2BGR)      
+            cv2.imshow(WindowName.LANDMARKS.name, rimage)
+        limage = cv2.cvtColor(rimage, cv2.COLOR_RGB2BGR)
 
         if(show_visual):
             cv2.imshow(WindowName.STATUS.name, limage)
@@ -94,25 +139,29 @@ def process_frame_from_cap(cap, frame_processor, show_visual=True):
             elif key == ord('q'):
                 break
             elif key == ord('p'):
-                cv2.waitKey()        
+                cv2.waitKey()
 
     frame_processor.finalize_dataframe()
-    
 
-def load_yolo():
-    model_name = "yolov8n"
+    if(show_visual):
+        cv2.destroyAllWindows()
 
-    # Model Names
-    #yolov8n-pose.pt
-    #yolov8s-pose.pt
-    #yolov8m-pose.pt
-    #yolov8l-pose.pt yolov8x-pose.pt yolov8x-pose-p6.pt
 
-    # Create a new YOLO Model
-    model = YOLO(f"{model_name}.yaml")
 
-    # Load the model with pre-trained weights
-    model = YOLO(f"{model_name}.pt")
+# def load_yolo():
+#     model_name = "yolov8n"
+
+#     # Model Names
+#     #yolov8n-pose.pt
+#     #yolov8s-pose.pt
+#     #yolov8m-pose.pt
+#     #yolov8l-pose.pt yolov8x-pose.pt yolov8x-pose-p6.pt
+
+#     # Create a new YOLO Model
+#     model = YOLO(f"{model_name}.yaml")
+
+#     # Load the model with pre-trained weights
+#     model = YOLO(f"{model_name}.pt")
 
     return
 
@@ -125,7 +174,7 @@ def get_yolo_settings(args):
     ]
 
 
-def get_mediapipe_settings(args):    
+def get_mediapipe_settings(args):
     return [
         args['num_hands'],
         args['min_detection_confidence'],
@@ -133,6 +182,41 @@ def get_mediapipe_settings(args):
         args['min_tracking_confidence']
     ]
 
+def check_if_file_is_image(filename):
+    if(filename.endswith(".jpg") or filename.endswith(".png")):
+        return True
+    return False
+
+# Helper function
+def write_model_results_to_csv(filename, df, collected_data = True, use_friendly_names = True):
+    if( df is None or len(df) == 0 or df.shape[0] == 0):
+        if(collected_data):
+            logging.info("Data was unable to saved on the output file.")
+        else:
+            logging.info("Data was not collected.")
+    else:
+        print(f"Writting to output file: {filename} with {df.shape[0]} records.")
+
+        if(use_friendly_names):
+              # Convert the columns to user-friendly names
+            df.columns = convert_all_columns_to_friendly_name(df, [])
+
+        print(filename)
+        df.to_csv(filename, index=False, header=True, sep="\t")
+
+
+def make_output_filename(args):
+    # Combine the output directory, the input filename, and the parameters to create a new filename.
+    # This will be used to save the results of the model.
+
+    output_file = os.path.basename(args['filename']).split(".")[0]
+    output_file = f"{output_file}_nh_{args['num_hands']}_md_{args['min_detection_confidence']}_mt_{args['min_tracking_confidence']}_mp_{args['min_presense_confidence']}_{args['model']}.csv"
+
+    return output_file
+
+def image_main(args, frame_processor):
+    process_frame_from_image(args['filename'], args["extend_frames"], frame_processor, args['show_visual'])
+    df = frame_processor.get_dataframe()
 
 def main():
 
@@ -145,45 +229,50 @@ def main():
     logging.info("Starting Program")
     logging.info(f"Setup Arguments: {args}")
 
-    args['filename'] = "./media/Videos/hands_944_video.mp4"
-    args['collect_data'] = True
-    args['camera_id'] = 4  
-
-    print( os.getcwd())
+    # Testing Arguments
+    # args['filename'] = "./media/Videos/hands_944_video.mp4"
+    # args['collect_data'] = True
+    # args['camera_id'] = 4
 
     frame_processor = None
     # Setup Frame Processor
     if(args['model'] == "mediapipe"):
         hand_model = get_hand_model(*get_mediapipe_settings(args))
         frame_processor = FrameProcessor(hand_model)
-    elif(args['model'] == "yolo"):
-        frame_processor = FrameProcessor(load_yolo())
+    # elif(args['model'] == "yolo"):
+    #     frame_processor = FrameProcessor(load_yolo())
     else:
         logging.error("Model not supported.")
-        return    
-    
-    try:
-        with VideoCap_Info.with_no_info() as cap:
-            cap.setup_capture(args['filename'])
-            process_frame_from_cap(cap, frame_processor)
+        return
 
-            df = frame_processor.get_dataframe()
+    # Run the program for an images
+    if(check_if_file_is_image(args['filename'])):
+        image_main(args, frame_processor)
+    else:
+        try:
+            with VideoCap_Info.with_no_info() as cap:
+                cap.setup_capture(args['filename'])
+                process_frame_from_cap(cap, frame_processor)
+        except Exception as e:
+            logging.error(f"Failed to read video or camera options. {e}")
 
-            if( df is not None):                
-                filename = args['output']
-                print(f"Writting to output file: {filename} with {df.shape[0]} records.")
-                df.to_csv(filename, index=False, header=True, sep="\t")
-            else:
-                if(args['collect_data']):
-                    logging.info("Data was unable to saved on the output file.")
-                else:
-                    logging.info("Data was not collected.")            
 
-    except Exception as e:
-        logging.error(f"Failed to read video or camera options. {e}")
-    finally:
-        cv2.destroyAllWindows()
+    # Write the results to a file
+    df = frame_processor.get_dataframe()
 
+    if(args['filename'] == "" or args['filename'].isdigit()):
+        args['filename'] = "saved_frame_data.png"
+
+    if( could_be_directory(args['output']) ):            
+        create_directory(args['output'])
+        args['output'] = os.path.join(args['output'],make_output_filename(args))
+
+
+    if(args['output'] == ""):        
+        # set the output file to the same name as the input file with csv extension.
+        args['output'] = change_extension( os.path.join("output/",os.path.basename(args['filename'])))
+
+    write_model_results_to_csv(args['output'], df, args['collect_data'], args['friendly_names'])
     logging.info("End of Program")
 
 if __name__ == '__main__':

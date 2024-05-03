@@ -12,13 +12,23 @@ def setup_arguments():
     ap.add_argument("-s", "--show_visual", action="store_true", help="Show Windows with visual information.")
 
     # Add an option to load a video file instead of a camera.
+    # Default to 0 for the camera.
     #../videos/tests/quick_flexion_test.mp4
-    ap.add_argument("-f", "--filename", type=str, default="",
+    ap.add_argument("-f", "--filename", type=str, default="0",
                     help="Load a video file instead of a camera.")
+    
+    # This option is for images only and will extend the frames to simulate video.
+    # This is useful for testing the model on images.
+    ap.add_argument("-ef", "--extend_frames", type=int, default=0)
+
+    # Add an option to load a video file instead of a camera.
+    ap.add_argument("-fn", "--friendly_names", action="store_false", help="Use friendly names for the columns in the output file.")
+
+
 
     # Add an option to load a video file instead of a camera.
     #../videos/tests/quick_flexion_test.mp4
-    ap.add_argument("-cd", "--collect_data", action="store_true", 
+    ap.add_argument("-cd", "--collect_data", action="store_false", 
                     help="Collect Data from the video file.")
 
     # Add an option to load a video file instead of a camera.
@@ -52,7 +62,7 @@ def setup_arguments():
 
     ##################### Output arguments.
     # Add the output file argument
-    ap.add_argument("-o", "--output", type=str, default="./output/saved_frame_data.csv",
+    ap.add_argument("-o", "--output", type=str, default="",
                      help="Output file name")    
 
     # Add an option to record the video
