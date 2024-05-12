@@ -132,7 +132,7 @@ def main():
             st.write("### Data Preview")
             df = load_data(uploaded_file)                   
             st.expander("Show Data", expanded=False).write(df)
-            cols = df.columns                
+            cols = df.columns
 
             st.write("### Select Columns to Graph")
             options_x_axis = st.selectbox('Select columns to plot on the x-axis',cols, key="x_axis")
@@ -162,7 +162,7 @@ def main():
                 st.plotly_chart(fig, use_container_width=True)
       
             # Compute the statistics
-            stats_df = compute_statistics(df, exclude_columns=['handedness','timestamp'])
+            stats_df = compute_statistics(df, exclude_columns=['handedness','timestamp','filename'])
             if(stats_df is not None):
                 st.write("### Statistics")
                 st.dataframe(stats_df, use_container_width=True)

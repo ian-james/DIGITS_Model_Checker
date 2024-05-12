@@ -1,6 +1,6 @@
 import cv2
 import logging
-from enum import Enum
+from enum import Enum, auto
 
 def is_string_int(s):
     try:
@@ -22,11 +22,15 @@ def find_camera(cams_test = 10):
             pass
     print(f"Found {len(results)} cameras: {results}")
     return results
-
-
 class VideoMode(Enum):
     CAMERA = 0
     VIDEO = 1
+
+class WindowName(Enum):
+    ORIGINAL = auto()
+    LANDMARKS = auto()
+    ENHANCED = auto()
+    STATUS = auto()
     
 class VideoCap_Info:     
     

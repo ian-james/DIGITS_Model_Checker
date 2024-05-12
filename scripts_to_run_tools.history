@@ -1,0 +1,19 @@
+ 2039  ls -1 ~/Projects/Western/Western_Postdoc/Datasets/reduced/nyu_RGB/ | head -n 2 | xargs -t -I {} python ./src/image_copy_main.py  -o ./output/nyu_tests/{}.mp4 -d ./output/nyu_tests/ -d
+ 10  -i ~/Projects/Western/Western_Postdoc/Datasets/reduced/nyu_RGB/{}
+ 2040  ls -1 ~/Projects/Western/Western_Postdoc/Datasets/reduced/nyu_RGB/ | head -n 2 | xargs -t -I {} python ./src/image_copy_main.py  -o ./output/nyu_tests/{}.mp4  -d 10  -i ~/Projects/Wes
+tern/Western_Postdoc/Datasets/reduced/nyu_RGB/{}
+ 2041  ls -1 ~/Projects/Western/Western_Postdoc/Datasets/reduced/nyu_RGB/ | head -n 2 | xargs -t -I {} python ./src/image_copy_main.py  -o ./output/nyu_tests/videos/{}.mp4  -d 10  -i ~/Proje
+cts/Western/Western_Postdoc/Datasets/reduced/nyu_RGB/{}
+ 2042  ls -1 ~/Projects/Western/Western_Postdoc/Datasets/reduced/nyu_RGB/ | shuf -n 200 | xargs -t -I {} python ./src/image_copy_main.py  -o ./output/nyu_tests/videos/{}.mp4  -d 10  -i ~/Pro
+jects/Western/Western_Postdoc/Datasets/reduced/nyu_RGB/{}
+ 2043  clear
+ 2044  ls -1 ./output/nyu_tests/videos/ | xargs -t -I {} python ./src/main.py -o ./output/nyu_tests/csvs/ -f ./output/nyu_tests/videos//{} -md 0.4 -mt 0.4 -mp 0.25 -nh 1
+ 2045  ls -1 ./output/nyu_tests/videos/ | xargs -t -I {} python ./src/main.py -o ./output/nyu_tests/csvs/ -f ./output/nyu_tests/videos//{} -md 0.6 -mt 0.6 -mp 0.6 -nh 1
+ 2046  ls -1 ./output/nyu_tests/videos/ | xargs -t -I {} python ./src/main.py -o ./output/nyu_tests/csvs/ -f ./output/nyu_tests/videos//{} -md 0.8 -mt 0.8 -mp 0.8 -nh 1
+
+
+ 2027  ls -1 ~/Projects/Western/Western_Postdoc/Datasets/reduced/nyu_RGB/*.png | head -n 20 | xargs -I {} ./src/main.py -f -ef 15
+ 2028  ls -1 ~/Projects/Western/Western_Postdoc/Datasets/reduced/nyu_RGB/*.png | head -n 20 | xargs -I {} ./src/main.py -ef 15 -o ./output/nyu_tests/ -f
+ 2029  ls -1 ~/Projects/Western/Western_Postdoc/Datasets/reduced/nyu_RGB/*.png | head -n 20 | xargs -t -I {} ./src/main.py -ef 15 -o ./output/nyu_tests/ -f
+ 2030  ls -1 ~/Projects/Western/Western_Postdoc/Datasets/reduced/nyu_RGB/ | head -n 20 | xargs -t -I {} ./src/main.py -ef 15 -o ./output/nyu_tests/ -f
+ 2031  ls -1 ~/Projects/Western/Western_Postdoc/Datasets/reduced/nyu_RGB/ | head -n 20 | xargs -t -I {} python ./src/main.py -ef 15 -o ./output/nyu_tests/ -f

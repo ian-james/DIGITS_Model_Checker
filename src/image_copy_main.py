@@ -20,6 +20,10 @@ def main():
     if( not os.path.exists(args['input_image']) ):
         print(f"Input video file not found: {args['input_image']}")
         return
+    
+    # If the output video is the empty string, then set it to the input filename with the extension changed to .mp4
+    if( args['output_video'] == ""):
+        args['output_video'] = Path(args['input_image']).stem + ".mp4"
 
     # Extract frames
     create_video_from_image(args['input_image'], args['output_video'],args['duration'], args['codec'])

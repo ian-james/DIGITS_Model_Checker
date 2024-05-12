@@ -2,6 +2,7 @@ import cv2
 import os
 from moviepy.editor import VideoFileClip, concatenate_videoclips
 import numpy as np
+from pathlib import Path
 
 
 # Check if a codec is supported by MoviePy (FFmpeg)
@@ -32,12 +33,15 @@ def extract_frames(video_path, output_dir):
         return  # Exit if video not opened
     
     count = 0
+    filestem = Path(video_path).stem
     # Extract frames
     while True:
         ret, frame = cap.read()
         if not ret:
             break
-        cv2.imwrite(os.path.join(output_dir, f"frame{count:04d}.jpg"), frame)
+        # Fix this to use the video name        
+        n = f"{filestem}_frame_{count:06d}.jpg"
+        cv2.imwrite(os.path.join(output_dir, f"{filestem}_frame_{count:06d}.jpg"), frame)
         count += 1
     
     cap.release()

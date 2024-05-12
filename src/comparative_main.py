@@ -5,12 +5,12 @@ import os
 import argparse
 import logging
 
+import numpy as np
 import pandas as pd
 
 from log import set_log_level
 
-import numpy as np
-from scipy import stats
+from stats_functions import compute_statistics
 
 def setup_arguments():
     
@@ -26,25 +26,7 @@ def setup_arguments():
     return ap
 
 
-# Function to compute the statistics
-# Compute the The standard error of the mean (SEM) is a measure of how much the sample mean is expected to vary from the true population mean.
-def sem(x):
-    return np.std(x, ddof=0) / np.sqrt(len(x))
 
-def compute_statistics(df, exclude_columns=[]):
-
-    if( df is None):
-        return None
-
-    # Exclude specific columns
-    if exclude_columns:
-        df = df.drop(columns=exclude_columns, errors='ignore') 
-
-    # Compute the statistics for each column
-    stats_fun = ['max', 'min', 'mean', 'median', 'std', sem] 
-    stats_df = df.agg(stats_fun)        
-
-    return stats_df
 
 # Given a CSV file, load the data and compute the statistics for each column
 # Output a new CSV file with the statistics and the filename

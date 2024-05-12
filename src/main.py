@@ -9,7 +9,7 @@ import mediapipe as mp
 import pandas as pd
 
 from fps_timer import FPS
-from VideoCap import VideoCap_Info
+from VideoCap import VideoCap_Info, WindowName
 from VideoCap import find_camera
 from DisplayCap import DisplayCap_Info
 
@@ -18,14 +18,9 @@ from log import set_log_level
 from mediapipe_helpers import *
 
 from convert_mediapipe_index import convert_all_columns_to_friendly_name
-from file_utils import add_extension, change_extension,create_directory, could_be_directory
+from file_utils import add_extension, change_extension,create_directory, could_be_directory, check_if_file_is_image
 #from ultralytics import YOLO
 
-class WindowName(Enum):
-    ORIGINAL = auto()
-    LANDMARKS = auto()
-    ENHANCED = auto()
-    STATUS = auto()
 
 def handle_keyboard():
     # Allow some keyboard actions
@@ -82,6 +77,7 @@ def process_frame_from_image(image_file, frames_to_run, frame_processor, show_vi
 
         if(show_visual):
             cv2.imshow(WindowName.STATUS.name, limage)
+            
 
     frame_processor.finalize_dataframe()
 
@@ -182,10 +178,6 @@ def get_mediapipe_settings(args):
         args['min_tracking_confidence']
     ]
 
-def check_if_file_is_image(filename):
-    if(filename.endswith(".jpg") or filename.endswith(".png")):
-        return True
-    return False
 
 # Helper function
 def write_model_results_to_csv(filename, df, collected_data = True, use_friendly_names = True):

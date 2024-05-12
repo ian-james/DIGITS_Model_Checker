@@ -84,3 +84,7 @@ def setup_fullpath_to_timestamp_output(output_filename, add_timestamp, directory
 
     return output_full_file, path_to_file
 
+def check_if_file_is_image(filename):
+    if(filename.endswith(".jpg") or filename.endswith(".png")):
+        return True
+    return False
