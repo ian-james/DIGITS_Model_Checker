@@ -37,6 +37,7 @@ import convert_mediapipe_index as convert_mp
 from mediapipe_helpers import *
 
 from scipy import stats
+import project_settings as ps
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -249,7 +250,7 @@ def anaysis_image(file_directory,filename, frame_processor):
 
 
 def main():
-    project_directory = "/home/jame/Projects/mediapipe_tools/media/"
+    project_directory = ps.DIR_MEDIA
 
     title = st.title("Mediapipe Evaluation Tool")
     # STEP 2: Create an HandLandmarker object.
@@ -281,7 +282,7 @@ def main():
         if(uploaded_file):
             if uploaded_file is not None:
                 # To read file as bytes:
-                file_directory = os.path.join(project_directory, "saved_images")
+                file_directory = os.path.join(project_directory, ps._SAVED_IMAGES)
                 filename, result = save_uploadedfile(uploaded_file, file_directory)
                 st.write(f"File saved: {filename}")
                 if (result):
@@ -302,7 +303,7 @@ def main():
         # Upload the video and save it
         uploaded_file = st.file_uploader("Upload a video file", type=["mp4", "avi", "mov"])
         if (uploaded_file):
-            file_directory = os.path.join(project_directory, "saved_videos")
+            file_directory = os.path.join(project_directory, ps._SAVED_VIDEOS)
             filename, result = save_uploadedfile(uploaded_file, file_directory)
             output_file = filename
             if Path(output_file).exists():
@@ -323,7 +324,7 @@ def main():
         img_file_buffer = st.camera_input("Camera")
         if(img_file_buffer):
             st.write(img_file_buffer)
-            filename, result = save_uploadedfile(img_file_buffer, os.path.join(project_directory, "saved_images"))
+            filename, result = save_uploadedfile(img_file_buffer, os.path.join(project_directory, ps._SAVED_IMAGES))
             if(result):
                 image = open_image(filename)
                 if (image is not None):
@@ -376,7 +377,7 @@ def main():
             if(stats_df is not None):
                 st.write("### Statistics")
                 st.dataframe(stats_df, use_container_width=True)
-                file_directory = os.path.join(project_directory, "saved_data_frames_stats")
+                file_directory = os.path.join(project_directory, ps._DF_STATS)
                 display_download_buttons(stats_df, os.path.join(file_directory, Path(uploaded_file.name).stem))
 
 

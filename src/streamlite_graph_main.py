@@ -20,6 +20,8 @@ from streamlit_utils import save_uploadedfile, download_dataframe, display_downl
 from mediapipe_helpers import *
 from fps_timer import FPS
 
+import project_settings as ps
+
 def run_original_streamlit_video_mediapipe_main(cap, frame_processor):
 
     # Streamlit UI Options.
@@ -100,7 +102,7 @@ def load_data(filename):
 
 def main():
 
-    project_directory = "/home/jame/Projects/DIGITS_Model_Checker/media/"
+    project_directory = ps.DIR_MEDIA
 
     st.set_page_config(page_title="Mediapipe Graphing Tool", page_icon=":bar_chart:", layout="wide")    
     st.write("### This tool is designed to graph data from a CSV file.")
@@ -166,7 +168,7 @@ def main():
             if(stats_df is not None):
                 st.write("### Statistics")
                 st.dataframe(stats_df, use_container_width=True)
-                file_directory = os.path.join(project_directory, "saved_data_frames_stats")
+                file_directory = os.path.join(project_directory, ps._DF_STATS)
                 display_download_buttons(stats_df, os.path.join(file_directory, Path(uploaded_file.name).stem))
 
 

@@ -16,13 +16,30 @@ from file_utils import check_if_file_is_image
 # Setup input arguments
 def setup_arguments():
     parser = argparse.ArgumentParser(description="Extract frames from a video")
+
+    # Logging level and visualization
+    parser.add_argument("-l","--log", type=str, default="info", help="Logging level. Default is info.")
+    parser.add_argument("-s","--show_visual", action="store_false", help="Show visualizations of the extracted frames.")
+
+    # Model medaiapipe or Yolo  
     parser.add_argument("-m","--model", type=str, default="mediapipe", help="Model to use for segmentation. Default is mediapipe.")
-    parser.add_argument("-l","--log", type=str, default="info", help="Logging level. Default is info.")    
+
+    # Target to segment between face or hand    
+    parser.add_argument("-t", "target", type=str, default="hand", help="Target to segment. Default is hand.")
+        
     parser.add_argument("-i","--input_file", type=str, default="./media/Images/left_arm_above_head.png", help="Path to the input video file.")
     parser.add_argument("-o","--frames_output_dir", type=str, default="./media/Output/", help="Directory to save the extracted frames.")
+
+    # Frame extraction options
     parser.add_argument("-px","--xpixels", type=int, default=256, help="Size of the extracted frames in pixels. Default is 256 pixels.")
     parser.add_argument("-py","--ypixels", type=int, default=256, help="Size of the extracted frames in pixels. Default is 256 pixels.")
-    parser.add_argument("-s","--show_visual", action="store_false", help="Show visualizations of the extracted frames.")
+
+    
+    # Fill boudning box with segmentation mask
+    parser.add_argument("-f","--fill", action="store_false", help="Fill the bounding box with the segmentation mask.")
+    parser.add_argument("-c","--color", type=str, default="red", help="Color of the bounding box and segmentation mask. Default is red.")
+
+
     return parser
 
 
