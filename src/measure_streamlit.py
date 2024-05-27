@@ -29,7 +29,7 @@ def setup_arguments():
     ##################### Debugging arguments.
     ap.add_argument("-l", "--log", type=str, default="info", help="Set the logging level. (debug, info, warning, error, critical)")
 
-    ap.add_argument("-s", "--show_visual", action="store_true", help="Show Windows with visual information.")
+    ap.add_argument("-s", "--show_visual", action="store_false", help="Show Windows with visual information.")
 
     # Add an option to load a video file instead of a camera.
     # Default to 0 for the camera.

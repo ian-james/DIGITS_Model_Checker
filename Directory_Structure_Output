@@ -1,0 +1,45 @@
+# Directory Structure
+# Media
+	# Videos
+	# Images
+	# CSVS
+	# Others
+	# Datasets
+		-Your-Data-Set-Unique
+			- Images
+			- Videos
+			- CSVS
+			- Others
+
+# Output (Calculated by programs)
+	Your-Data-Set-Unique
+		- Images
+		- Videos
+		- CSVS
+		- Others
+
+# Results (Based on Output)
+	Your-Data-Set-Unique
+		- Presentations
+		- etc
+
+################################## SINGLE MEDIA #####################
+# Given an Image or Video
+# If an Image - Convert or runtime
+# If an Video - Continue
+
+# Run Mediapipe (Confidence Metrics)
+	# Save Output Image
+	# Save CSV
+
+# Categorization (if needed) - Open Palm/Closed/etc
+
+
+################################## DIRECTORY #####################
+# Model
+# Input Directory
+# Output Directory
+# CSV Directory
+# RESULTS
+
+

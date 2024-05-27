@@ -236,6 +236,9 @@ def main():
     else:
         logging.error("Model not supported.")
         return
+    
+    print(args['filename'])
+    print("\n\n")
 
     # Run the program for an images
     if(check_if_file_is_image(args['filename'])):
@@ -244,7 +247,7 @@ def main():
         try:
             with VideoCap_Info.with_no_info() as cap:
                 cap.setup_capture(args['filename'])
-                process_frame_from_cap(cap, frame_processor)
+                process_frame_from_cap(cap, frame_processor, args['show_visual'])
         except Exception as e:
             logging.error(f"Failed to read video or camera options. {e}")
 

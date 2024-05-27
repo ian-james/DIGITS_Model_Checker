@@ -14,7 +14,7 @@ def setup_arguments():
     # Add an option to load a video file instead of a camera.
     # Default to 0 for the camera.
     #../videos/tests/quick_flexion_test.mp4
-    ap.add_argument("-f", "--filename", type=str, default="0",
+    ap.add_argument("-f", "--filename", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/small_sample_test/Videos/rgb_1_0000001_fps_30.mp4",
                     help="Load a video file instead of a camera.")
     
     # This option is for images only and will extend the frames to simulate video.

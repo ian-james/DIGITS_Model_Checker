@@ -89,12 +89,11 @@ def cut_video_by_frame(input_video_path, output_video_path, start_frame, end_fra
 
 
 # This function takes a single image and creates a video from it
-def create_video_from_image(image_path, output_video_path, duration=5, codec="mp4v"):
-
+def create_video_from_image(image_path, output_video_path, duration=5, codec="mp4v", fps=30):
     # Load the image
     image = cv2.imread(image_path)
 
-    # Check the iage loaded properly.
+    # Check if the image loaded properly
     if image is None:
         print(f"Error loading image: {image_path}")
         return
@@ -105,14 +104,17 @@ def create_video_from_image(image_path, output_video_path, duration=5, codec="mp
     try:
         # Create a VideoWriter object
         fourcc = cv2.VideoWriter_fourcc(*codec)
-        out = cv2.VideoWriter(output_video_path, fourcc, 1, (width, height))
+        out = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
+
+        # Calculate the number of frames needed
+        num_frames = duration * fps
 
         # Write the image to the video file multiple times to create the video
-        for _ in range(duration):
+        for _ in range(num_frames):
             out.write(image)
 
         # Release the VideoWriter object
-        out.release()
+        out.release()        
         print(f"Video created from image: {output_video_path}")
     except Exception as e:
         print(f"Error creating video from image: {e}")

@@ -20,7 +20,7 @@ def change_extension(file_path, extension="csv"):
     # Define the new extension
     new_file_path = f"{base_name}.{extension}"    
     return new_file_path
-
+  
 def add_extension(filename, extension=".csv"):
     basename, ext = os.path.splitext(filename)
     if ext == extension:
