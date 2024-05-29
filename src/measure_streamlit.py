@@ -119,15 +119,19 @@ def main():
     st.write("The app will load an image and analyze it using the MediaPipe Hands model.")
 
     # Create a sidebar with options for logging level and number of hands
-    st.sidebar.title("Options")
-    st.sidebar.subheader("Logging Level")
-    st.sidebar.write("Set the logging level for the application.")
+    st.sidebar.title("Options")    
     log_level = st.sidebar.selectbox("Select a logging level", ["debug", "info", "warning", "error", "critical"])
     args['log'] = log_level
     
-    st.sidebar.subheader("MediaPipe Hands Model Settings")
-    st.sidebar.write("Set the settings for the MediaPipe Hands model.")
+    st.sidebar.subheader("MediaPipe Hands Settings")    
     num_hands = st.sidebar.slider("Number of hands", 1, 2)
+    min_detection_confidence = st.sidebar.slider("Minimum detection confidence", 0.0, 1.0, 0.5)
+    min_presense_confidence = st.sidebar.slider("Minimum presense confidence", 0.0, 1.0, 0.5)
+    min_tracking_confidence = st.sidebar.slider("Minimum tracking confidence", 0.0, 1.0, 0.5)
+    # Put a number box for the proximal phalanx size
+    proximal_phalanx_size = st.sidebar.number_input("Proximal Phalanx Size in cm", value=3.0)
+
+    
    
     # Load the image
     image = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
@@ -141,8 +145,8 @@ def main():
         frame_processor = None
         # Setup Frame Processor
         if(args['model'] == "mediapipe"):
-            hand_model = get_hand_model(*get_mediapipe_settings(args))
-            frame_processor = HandDistance_Wrapper(hand_model)
+            hand_model = get_hand_model(num_hands, min_detection_confidence, min_presense_confidence, min_tracking_confidence)
+            frame_processor = HandDistance_Wrapper(hand_model, proximal_phalanx_size)
 
         # Measure the time taken to process the image
         start_time = time.time()

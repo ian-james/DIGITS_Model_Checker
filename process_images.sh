@@ -6,7 +6,7 @@ usage() {
     echo "This program takes an image and converts it to a video."
     echo "  -i  Directory containing images"
     echo "  -o  Directory for videos output"
-    echo "  -n  Number of files to process (default: 200)"
+    echo "  -n  Number of files to process (default: 0(all)"
     echo "  -f  FPS (default: 30)"
     echo "  -s  Shuffle files"
 

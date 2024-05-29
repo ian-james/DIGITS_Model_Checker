@@ -19,8 +19,6 @@ import cv2
 
 # Constant for the estimated hand size in centimeters.
 # ROUGHT ESTIMATE
-PIXEL_TO_CM_ESTIMATE = 0.018592443594320586
-MY_PROXIMAL_PHALANX_SIZE = 3.0 # cm 
 
 FINGER_TIP_CONNECTIONS = ((4, 8), (8, 12), (12,16),(16, 20))
 _FINGER_TIP_STYLE = { FINGER_TIP_CONNECTIONS: DrawingSpec(color=_RED, thickness=2) }
@@ -424,7 +422,7 @@ class FaceDetector_Wrapper(FrameProcessor):
 ###########################################################################################################
 
 class HandDistance_Wrapper(FrameProcessor):
-    def __init__(self, detector):
+    def __init__(self, detector, proximal_phalanx_size=3.0):
         FrameProcessor.__init__(self, detector)
 
         # Add Last Calcualted Distances
@@ -436,6 +434,11 @@ class HandDistance_Wrapper(FrameProcessor):
 
         # Colors for each finger line
         self.colors = [(0,0,255), (0,255,0), (255,0,0), (255,255,0), (0,255,255)]
+
+        self.MY_PROXIMAL_PHALANX_SIZE = proximal_phalanx_size
+        self.PIXEL_TO_CM_ESTIMATE = 0.018592443594320586
+
+
 
     def get_distances(self):
         return self.distances
@@ -457,7 +460,7 @@ class HandDistance_Wrapper(FrameProcessor):
             height, width, _ = frame.shape
     
             index_proximal_phalanx_size = self.calculate_distance( detection_results.hand_landmarks[0], [6,7], width, height)
-            PIXEL_TO_CM_ESTIMATE = MY_PROXIMAL_PHALANX_SIZE / index_proximal_phalanx_size["Distance"].sum()
+            PIXEL_TO_CM_ESTIMATE = self.MY_PROXIMAL_PHALANX_SIZE / index_proximal_phalanx_size["Distance"].sum()
 
             index_size = self.calculate_distance( detection_results.hand_landmarks[0], [5,8], width, height)
             print(f"\n\nIndex Finger Size: {index_size['Distance'].sum()*PIXEL_TO_CM_ESTIMATE} cm\n\n")

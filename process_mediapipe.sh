@@ -15,12 +15,12 @@ usage() {
 }
 
 # Default values
-md_value=0.4
-mt_value=0.4
-mp_value=0.25
+md_value=0.8
+mt_value=0.8
+mp_value=0.8
 nh_value=1
 
-num_files=200
+num_files=0
 shuffle=false
 
 # Parse command-line options

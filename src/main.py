@@ -236,9 +236,6 @@ def main():
     else:
         logging.error("Model not supported.")
         return
-    
-    print(args['filename'])
-    print("\n\n")
 
     # Run the program for an images
     if(check_if_file_is_image(args['filename'])):

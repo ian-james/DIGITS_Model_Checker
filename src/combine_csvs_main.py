@@ -56,6 +56,7 @@ def main():
 
                 print(stats_df.loc['var'].T)
 
+                # Add the statistics to the item dataframe
                 for column_name, value in stats_df.loc['var'].items():
                     item_df[column_name] = value
                 print(item_df.columns)
