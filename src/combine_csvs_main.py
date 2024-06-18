@@ -13,6 +13,7 @@ def main():
     parser = argparse.ArgumentParser(description="Create a video from a single image.")    
     parser.add_argument("-d","--directory", type=str, default="./output/nyu_tests/csvs/", help="Path to the input csv.") 
     parser.add_argument("-o","--out_filename", type=str, default="combine_output.csv", help="Path and filename for the converted video.")
+    parser.add_argument("-s","-stats", type=str, default="var", help="Statistics to compute (var, std, mean, max, min)")
      
     # Setup Arguments
     args = vars(parser.parse_args())
@@ -48,23 +49,27 @@ def main():
                 }
 
                 df = pd.read_csv(file_path, sep='\t')
+
+                df = df[df.columns.drop(list(df.filter(regex='^presence_\\d+')),errors='ignore')]
+
+                df = df[df.columns.drop(list(df.filter(regex='^visibility_\\d+')),errors='ignore')]
+
                 item_df = pd.DataFrame([item])
 
                 # Compute the statistics
                 stats_df = compute_statistics(df, exclude_columns=exclude_columns)
                 stats_df.to_csv(f"stats_{file_name}_.csv", header=True, sep="\t")
 
-                print(stats_df.loc['var'].T)
+                #print(stats_df.loc['var'].T)
+                stat_var = 'var'
 
                 # Add the statistics to the item dataframe
-                for column_name, value in stats_df.loc['var'].items():
-                    item_df[column_name] = value
-                print(item_df.columns)
+                for column_name, value in stats_df.loc[stat_var].items():
+                    item_df[column_name] = value                
 
                 item_df.to_csv(f"item_stats_{file_name}_.csv", header=True, sep="\t")
         
-                total_df = pd.concat([total_df, item_df], axis=0,ignore_index=True)   
-                print(total_df.columns)
+                total_df = pd.concat([total_df, item_df], axis=0,ignore_index=True)                   
 
             except:
                 print(f"Error parsing the filename: {file_name}")

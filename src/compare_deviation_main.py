@@ -71,9 +71,9 @@ def main(input_file, output_file, exclude_columns):
         print(f"File not found: {input_file}")
         return    
 
-    df = df[df.columns.drop(list(df.filter(regex='^presence_\\d+')))]
+    df = df[df.columns.drop(list(df.filter(regex='^presence_\\d+')),errors='ignore')]
 
-    df = df[df.columns.drop(list(df.filter(regex='^visibility_\\d+')))]
+    df = df[df.columns.drop(list(df.filter(regex='^visibility_\\d+')),errors='ignore')]
     
     # Find the biggest deviations
     biggest_deviation_result = find_biggest_deviation(df, exclude_columns)

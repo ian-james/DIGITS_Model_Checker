@@ -1,0 +1,9 @@
+Include where the files are and what they show.
+
+item_stats - a single item representing the (default - variance) or select metric for a single video
+stats_rgb - the descriptive states of that video. ex) min,max, mean, median, var , std
+
+/output/all_settings_combined_fps_md/
+ 	all_combined_fps_30_md_04/ 
+		excel
+		csvs - 
