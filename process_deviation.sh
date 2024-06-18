@@ -3,7 +3,8 @@
 # Function to display usage information
 usage() {
     echo "Usage: $0 -i <csv_files> -o <excel_output_directory> [-n <number_of_files>] [-s]"
-    echo "This program takes an image and converts it to a video."
+    echo "This program takes a directory of mediapipe csv files and calculates the deviation between all frames in each file to an excel file."
+    echo "It also calculates the maximum deviation and the frame it occurs."
     echo "  -i  Directory containing csvs"
     echo "  -o  Directory for excel output"
     echo "  -n  Number of files to process (default: 0(all)"

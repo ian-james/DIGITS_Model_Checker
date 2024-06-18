@@ -3,6 +3,9 @@
 # Function to display usage information
 usage() {
     echo "Usage: $0 -i <videos_directory> -o <csv_output_directory> [-md <md_value>] [-mt <mt_value>] [-mp <mp_value>] [-nh <nh_value>]"
+    echo "This program takes a directory of video(s) and produces a set of mediapipe csv file(s) of hand landmarks."
+    echo "You can set specific parameters for mediapipe confidence"
+    echo "You can also specify the number of files to hand and if to shuffle the order."
     echo "  -i  Directory containing videos"
     echo "  -o  Directory for CSV output"
     echo "  -n  Number of files to process (default: 200)"
@@ -41,9 +44,11 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 
-echo $md_value
-echo $mt_value
-echo $mp_value
+echo "Starting program with:"
+echo "Min Detection '$md_value'"
+echo "Min Tracking '$mt_value'"
+echo "Min Pose '$mp_value'"
+echo "Hands '$nh'"
 
 # Check if mandatory arguments are provided
 if [ -z "$videos_directory" ] || [ -z "$csv_output_directory" ]; then

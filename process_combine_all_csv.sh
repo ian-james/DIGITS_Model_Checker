@@ -3,6 +3,7 @@
 # Function to display usage information
 usage() {
     echo "Usage: $0 -d <csv_directory> -o <output_filename>"
+    echo "Combines all the CSV files into a single file for analysis."
     echo "  -d  Directory containing CSV files"
     echo "  -o  Output filename for the combined CSV"
     exit 1
