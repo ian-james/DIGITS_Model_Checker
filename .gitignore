@@ -5,6 +5,7 @@
 
 # Project Specific
 venv/
+output/
 
 # User-specific files
 *.rsuser
