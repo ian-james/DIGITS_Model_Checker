@@ -21,7 +21,7 @@ usage() {
 md_value="0.5" 
 mt_value="0.5"
 mp_value="0.5"
-nh_value=1
+nh_value="1"
 
 num_files=0
 shuffle=false
@@ -48,12 +48,13 @@ echo "Starting program with:"
 echo "Min Detection '$md_value'"
 echo "Min Tracking '$mt_value'"
 echo "Min Pose '$mp_value'"
-echo "Hands '$nh'"
+echo "Hands '$nh_value'"
 
 # Check if mandatory arguments are provided
-if [ -z "$videos_directory" ] || [ -z "$csv_output_directory" ]; then
-    echo "Error missing '$videos_directory'"
+if [ -z "$videos_directory" ]; then
+    echo "Error missing folder for input or output: '$videos_directory'"
     usage
+    exit 1
 fi
 
 # Ensure the videos directory exists

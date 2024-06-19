@@ -202,7 +202,7 @@ def make_output_filename(args):
     # This will be used to save the results of the model.
 
     output_file = os.path.basename(args['filename']).split(".")[0]
-    output_file = f"{output_file}_nh_{args['num_hands']}_md_{args['min_detection_confidence']}_mt_{args['min_tracking_confidence']}_mp_{args['min_presense_confidence']}_{args['model']}.csv"
+    output_file = f"{output_file}_{args['model']}_nh_{args['num_hands']}_md_{args['min_detection_confidence']}_mt_{args['min_tracking_confidence']}_mp_{args['min_presense_confidence']}.csv"
 
     return output_file
 
@@ -258,11 +258,12 @@ def main():
     if( could_be_directory(args['output']) ):            
         create_directory(args['output'])
         args['output'] = os.path.join(args['output'],make_output_filename(args))
+        print("HERE")
 
 
     if(args['output'] == ""):        
         # set the output file to the same name as the input file with csv extension.
-        args['output'] = change_extension( os.path.join("output/",os.path.basename(args['filename'])))
+        args['output'] = change_extension( os.path.join("output/",make_output_filename(args)))
 
     write_model_results_to_csv(args['output'], df, args['collect_data'], args['friendly_names'])
     logging.info("End of Program")

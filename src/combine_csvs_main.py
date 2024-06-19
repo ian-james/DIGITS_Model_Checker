@@ -6,18 +6,31 @@ import argparse
 import pandas as pd
 import numpy as np
 
+from pathlib import Path
+
 from stats_functions import compute_statistics
 
 
+def get_directory(file_path):
+    
+    # Check if the file_path is a directory and already exists.
+    if os.path.isdir(file_path):
+        return file_path
+    
+    if not file_path:
+        raise ValueError("The file path must not be empty.")
+    
+    return os.path.dirname(os.path.abspath(file_path))
+
 def main():
     parser = argparse.ArgumentParser(description="Create a video from a single image.")    
-    parser.add_argument("-d","--directory", type=str, default="./output/nyu_tests/csvs/", help="Path to the input csv.") 
+    parser.add_argument("-d","--directory", type=str, default="output/nyu/videos/fps_30/md_05_mt_05_mp_05/", help="Path to the input csv.") 
     parser.add_argument("-o","--out_filename", type=str, default="combine_output.csv", help="Path and filename for the converted video.")
-    parser.add_argument("-s","-stats", type=str, default="var", help="Statistics to compute (var, std, mean, max, min)")
+    parser.add_argument("-s","--stats_directory", type=str, default="", help="Specific Path for stats files (optional).") 
+    parser.add_argument("-m","-stats", type=str, default="var", help="Statistics to compute (var, std, mean, max, min)")
      
     # Setup Arguments
     args = vars(parser.parse_args())
-
     directory = args['directory']
     if( directory == ""):
         print("Please provide a directory path.")
@@ -32,7 +45,22 @@ def main():
     exclude_columns = ['filename','time','timestamp','handedness']
     total_df = pd.DataFrame()
 
+    # Using pathlib get the parent directory of this directory.
+    odirectory = Path(directory).parent
+    sdirectory  = args['stats_directory']
+   
+    if( sdirectory == ""):
+        sdirectory = odirectory
+
+    if( not os.path.exists(sdirectory) ):
+        os.makedirs(sdirectory)
+     
+    print(f"Input directory: {directory}")
+    print(f"Output directory: {odirectory}")
+    print(f"Stats directory: {sdirectory}")
+
     files = os.listdir(directory)    
+
     for file_name in files:
         file_path = os.path.join(directory, file_name)
         if os.path.isfile(file_path) and file_name.endswith('.csv'):
@@ -41,11 +69,11 @@ def main():
                 components = file_name.split('_')
                 item = {
                     'filename': components[0] + "_" + components[1] + "_" + components[2],
-                    'nh': components[4],
-                    'md': components[6],
-                    'mt': components[8],
-                    'mp': components[10],
-                    'model': components[11].split('.')[0]
+                    'nh': components[5],
+                    'md': components[7],
+                    'mt': components[9],
+                    'mp': components[11].split('.')[0],
+                    'model': components[3]
                 }
 
                 df = pd.read_csv(file_path, sep='\t')
@@ -58,16 +86,15 @@ def main():
 
                 # Compute the statistics
                 stats_df = compute_statistics(df, exclude_columns=exclude_columns)
-                stats_df.to_csv(f"stats_{file_name}_.csv", header=True, sep="\t")
-
-                #print(stats_df.loc['var'].T)
+                sfile = os.path.join(sdirectory,f"stats_{file_name}")                
+                stats_df.to_csv(sfile, header=True, sep="\t")
+                
                 stat_var = 'var'
-
                 # Add the statistics to the item dataframe
                 for column_name, value in stats_df.loc[stat_var].items():
                     item_df[column_name] = value                
 
-                item_df.to_csv(f"item_stats_{file_name}_.csv", header=True, sep="\t")
+                #item_df.to_csv(f"item_stats_{file_name}_.csv", header=True, sep="\t")
         
                 total_df = pd.concat([total_df, item_df], axis=0,ignore_index=True)                   
 
@@ -79,7 +106,9 @@ def main():
     if( total_df is None or len(total_df) == 0):
         print("No data to save.")
     else:
-        total_df.to_csv(args['out_filename'], index=False, header=True, sep="\t")
+        # Save the file to the output directory
+        out_file = os.path.join(odirectory, args['out_filename'])
+        total_df.to_csv(out_file, index=False, header=True, sep="\t")
 
     print(f"Finished writing the statistics to {args['out_filename']}")
 

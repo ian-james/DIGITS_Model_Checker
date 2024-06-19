@@ -1,31 +1,113 @@
 #!/bin/bash
 
 # Check if the correct number of arguments is provided
-if [ "$#" -ne 3 ]; then
-    echo "Usage: $0 <images_directory> <videos_output_directory> <csv_output_directory>"
+# Function to display usage information
+usage() {
+    echo "Usage: $0 -i <videos_directory> -o <csv_output_directory> [-md <md_value>] [-mt <mt_value>] [-mp <mp_value>] [-nh <nh_value>]"
+    echo "This program takes a directory of video(s) and produces a set of mediapipe csv file(s) of hand landmarks."
+    echo "You can set specific parameters for mediapipe confidence"
+    echo "You can also specify the number of files to hand and if to shuffle the order."
+    echo "  -i  Directory containing videos"
+    echo "  -o  Directory for CSV output"
+    echo "  -a  all_combined csv filename "
+    echo "  -n  Number of files to process (default: 0)"
+    echo "  -md Minimum detection confidence (default: 0.4)"
+    echo "  -mt Minimum tracking confidence (default: 0.4)"
+    echo "  -mp Minimum pose confidence (default: 0.25)"
+    echo "  -nh Number of hands (default: 1)"
+    echo "  -s  Shuffle files"
+    exit 1
+}
+
+# Default values
+md_value="0.5" 
+mt_value="0.5"
+mp_value="0.5"
+nh_value="1"
+
+num_files=0
+shuffle=false
+
+all_combined_file="all_combined.csv"
+
+
+# Parse command-line options
+# Parse command-line options
+while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+        -i) videos_directory="$2"; shift ;;
+        -o) csv_output_directory="$2"; shift ;;
+        -n) num_files="$2"; shift ;;
+        -a) all_combined_file="$2"; shift ;;
+        -md) md_value="$2"; shift ;;
+        -mt) mt_value="$2"; shift ;;
+        -mp) mp_value="$2"; shift ;;
+        -nh) nh_value="$2"; shift ;;
+        -s) shuffle=true ;;
+        -h) usage ;;
+        *) echo "Unknown option: $1"; usage ;;
+    esac
+    shift
+done
+
+echo md_value
+echo mt_value
+echo mp_value
+echo nh_value
+
+echo num_files
+echo shuffle
+
+# Make sure the output directories exist
+# Check if mandatory arguments are provided
+if [ -z "$videos_directory" ]; then
+    echo "Error missing folder for input or output: '$videos_directory'"
+    usage
     exit 1
 fi
 
-# Get the input parameters
-images_directory=$1
-videos_output_directory=$2
-csv_output_directory=$3
+# Ensure the videos directory exists
+if [ ! -d "$videos_directory" ]; then
+    echo "Error: Videos directory '$videos_directory' does not exist."
+    exit 1
+fi
 
-# Make sure the output directories exist
-mkdir -p "$videos_output_directory"
+# Ensure the CSV output directory exists or create it
 mkdir -p "$csv_output_directory"
 
-# Generate videos from images
-echo "Generating videos from images..."
-ls -1 "$images_directory" | shuf -n 200 | xargs -t -I {} python ./src/image_copy_main.py -o "$videos_output_directory/{}.mp4" -d 10 -i "$images_directory/{}"
+# Determine the command for listing and selecting files
+if [ "$num_files" -eq 0 ]; then
+	file_list_command="ls -1 $videos_directory" 
+else
+	if $shuffle; then
+	    file_list_command="ls -1 $videos_directory | shuf -n $num_files"
+	else
+	    file_list_command="ls -1 $videos_directory | head -n $num_files"
+	fi
+fi
 
-# Run Mediapipe
-echo "Running Mediapipe on videos..."
-ls -1 "$videos_output_directory" | xargs -t -I {} python ./src/main.py -o "$csv_output_directory" -f "$videos_output_directory/{}" -md 0.4 -mt 0.4 -mp 0.25 -nh 1
+# Ensure the CSV output directory exists or create it
+# Settings dir is meant to distinguish runs and aligns with python make_output_folder
+settings_dir='nh_'$nh_value'_md_'$md_value'_mt_'$md_value'_mp_'$mp_value'/'
 
-# Combine all CSVs
-echo "Combining all CSV files..."
-python ./src/combine_csvs_main.py -d "$csv_output_directory" -o "$csv_output_directory/all_combined_csvs.csv"
+csvs_out=$csv_output_directory$settings_dir'csvs/'
+mkdir -p "$csvs_out"
+
+echo -e "\nStarting Mediapipe on video files."
+./process_mediapipe.sh -n $num_files -i $videos_directory -o $csvs_out -nh $nh_value -md $md_value -mt $md_value -mp $mp_value 
+
+stats_dir=$csvs_out'stats/'
+#echo $stats_dir
+#echo $csvs_out
+
+echo -e "\nCombine Mediapipe Results into stats files."
+./process_combine_all_csv.sh -d $csvs_out  -s $stats_dir -o $all_combined_file
+
+excel_out=$csv_output_directory$settings_dir'excel/'
+echo -e "\nCalculate Deviation based on mediapipe results."
+#echo ">> $excel_out"
+./process_deviation.sh -i $csvs_out -o $excel_out
 
 echo "Process completed."
+
 

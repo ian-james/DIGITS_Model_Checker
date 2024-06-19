@@ -34,27 +34,27 @@ fi
 
 # Ensure the csvs directory exists
 if [ ! -d "$csvs_directory" ]; then
-    echo "Error: Images directory '$csvs_directory' does not exist."
+    echo "Error: No Mediapipe CSVS directory '$csvs_directory' does not exist."
     exit 1
 fi
-
-# Ensure the excel output directory exists or create it
-mkdir -p "$excel_output_directory"
 
 # Determine the command for listing and selecting files
 if [ "$num_files" -eq 0 ]; then
 	file_list_command="ls -1 $csvs_directory" 
 else
 	if $shuffle; then
-	    file_list_command="ls -1 $csvs_directory | shuf -n $num_files"
+	    file_list_command="ls -1 $csvs_directory | grep -E "*.csv$" | shuf -n $num_files"
 	else
-	    file_list_command="ls -1 $csvs_directory | head -n $num_files"
+	    file_list_command="ls -1 $csvs_directory |  grep -E "*.csv$" |  head -n $num_files"
 	fi
 fi
 
+# Ensure the excel output directory exists or create it
+mkdir -p "$excel_output_directory"
+
 # Generate excel from csvs
 echo "Generating excel from csvs..."
-eval $file_list_command | xargs -t -I {} python ./src/compare_deviation_main.py -o "$excel_output_directory{}.xlsx"  -i "$csvs_directory/{}"
+eval $file_list_command | grep -E "\.csv$"  | xargs -t -I {} python ./src/compare_deviation_main.py -i "$csvs_directory{}" -o "$excel_output_directory{}" 
 
 echo "Process completed."
 

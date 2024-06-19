@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 import argparse
 
+from file_utils import change_extension
+
 def add_moving_avg_std(df, value_column, window_size):
     """
     Adds moving average and standard deviation columns to the DataFrame.
@@ -71,18 +73,21 @@ def main(input_file, output_file, exclude_columns):
         print(f"File not found: {input_file}")
         return    
 
+    
     df = df[df.columns.drop(list(df.filter(regex='^presence_\\d+')),errors='ignore')]
 
     df = df[df.columns.drop(list(df.filter(regex='^visibility_\\d+')),errors='ignore')]
     
+
     # Find the biggest deviations
     biggest_deviation_result = find_biggest_deviation(df, exclude_columns)
     
     # Calculate deviations at each time step
     deviations_at_each_step = calculate_deviations(df, exclude_columns)
     
+    excel_file = change_extension(output_file, "xlsx")   
     # Write the results to the output file
-    with pd.ExcelWriter(output_file) as writer:
+    with pd.ExcelWriter(excel_file) as writer:        
         biggest_deviation_result.to_excel(writer, sheet_name='Biggest_Deviations', index=False)
         deviations_at_each_step.to_excel(writer, sheet_name='Deviations_at_Time', index=False)
 
@@ -93,8 +98,5 @@ if __name__ == "__main__":
     parser.add_argument("-e", "--exclude_columns", type=str, nargs='*', default=["timestamp","handedness"], help='Columns to exclude from analysis')
         
     args = vars(parser.parse_args())
-
-    print("The input file is ", args['input_file'])
-    print("The output file is ", args['output_file'])
-    
+   
     main(args['input_file'], args['output_file'], args['exclude_columns'])
