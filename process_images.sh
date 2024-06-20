@@ -17,12 +17,14 @@ usage() {
 num_files=0
 shuffle=false
 fps=30
+duration=10
 
 # Parse command-line options
-while getopts "i:o:n:f:sh" opt; do
+while getopts "i:o:d:n:f:sh" opt; do
     case "$opt" in
         i) images_directory=$OPTARG ;;
         o) videos_output_directory=$OPTARG ;;
+        d) duration=$OPTARG ;;
         n) num_files=$OPTARG ;;
         s) shuffle=true ;;
 	f) fps=$OPTARG ;;
@@ -58,7 +60,7 @@ fi
 
 # Generate videos from images
 echo "Generating videos from images..."
-eval $file_list_command | xargs -t -I {} python ./src/image_copy_main.py -f "$fps" -o "$videos_output_directory/{}.mp4" -d 10 -i "$images_directory/{}"
+eval $file_list_command | xargs -t -I {} python ./src/image_copy_main.py -f "$fps" -o "$videos_output_directory{}.mp4" -d $duration -i "$images_directory{}"
 
 echo "Process completed."
 

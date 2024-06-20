@@ -96,6 +96,13 @@ mkdir -p "$csvs_out"
 echo -e "\nStarting Mediapipe on video files."
 ./process_mediapipe.sh -n $num_files -i $videos_directory -o $csvs_out -nh $nh_value -md $md_value -mt $md_value -mp $mp_value 
 
+if [ $? -eq 0 ]; then
+	echo "Process completed."
+else
+	echo "Process Failed
+        exit 1
+fi
+
 stats_dir=$csvs_out'stats/'
 #echo $stats_dir
 #echo $csvs_out
@@ -103,11 +110,26 @@ stats_dir=$csvs_out'stats/'
 echo -e "\nCombine Mediapipe Results into stats files."
 ./process_combine_all_csv.sh -d $csvs_out  -s $stats_dir -o $all_combined_file
 
+if [ $? -eq 0 ]; then
+	echo "Process completed."
+else
+	echo "Process Failed
+        exit 1
+fi
+
+
 excel_out=$csv_output_directory$settings_dir'excel/'
 echo -e "\nCalculate Deviation based on mediapipe results."
 #echo ">> $excel_out"
 ./process_deviation.sh -i $csvs_out -o $excel_out
 
-echo "Process completed."
+if [ $? -eq 0 ]; then
+	echo "Process completed."
+else
+	echo "Process Failed
+        exit 1
+fi
+
+
 
 
