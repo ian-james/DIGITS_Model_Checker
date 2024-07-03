@@ -99,7 +99,7 @@ echo -e "\nStarting Mediapipe on video files."
 if [ $? -eq 0 ]; then
 	echo "Process completed."
 else
-	echo "Process Failed
+	echo "Process Failed"
         exit 1
 fi
 
@@ -113,7 +113,7 @@ echo -e "\nCombine Mediapipe Results into stats files."
 if [ $? -eq 0 ]; then
 	echo "Process completed."
 else
-	echo "Process Failed
+	echo "Process Failed"
         exit 1
 fi
 
@@ -126,7 +126,7 @@ echo -e "\nCalculate Deviation based on mediapipe results."
 if [ $? -eq 0 ]; then
 	echo "Process completed."
 else
-	echo "Process Failed
+	echo "Process Failed"
         exit 1
 fi
 
