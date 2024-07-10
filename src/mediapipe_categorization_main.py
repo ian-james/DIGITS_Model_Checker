@@ -61,8 +61,8 @@ def main():
     top_gesture = all_gestures[0][0]
     
     if(args['print_all']):
-        for gesture in all_gestures:
-            print(f"Gesture: {gesture[0].category_name} with score {gesture[0].score}")
+      for gesture in all_gestures:
+          print(f"Gesture: {gesture[0].category_name} with score {gesture[0].score}")
     else:
        print(f"Top gesture: {top_gesture.category_name} with score {top_gesture.score}")
 

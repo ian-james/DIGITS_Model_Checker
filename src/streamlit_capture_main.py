@@ -33,7 +33,6 @@ from VideoCap import VideoCap_Info
 
 import convert_mediapipe_index as convert_mp
 
-
 from mediapipe_helpers import *
 
 from scipy import stats
