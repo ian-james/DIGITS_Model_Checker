@@ -46,7 +46,7 @@ def create_directory(directory_path):
     Returns:
         None
     """
-    if not os.path.exists(directory_path):
+    if directory_path != '' and not os.path.exists(directory_path):
         os.makedirs(directory_path)
 
 

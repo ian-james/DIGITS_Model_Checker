@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 
+import logging
+
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
@@ -13,7 +15,9 @@ from datetime import datetime, timezone
 import math
 from typing import List, Tuple, Union, Mapping
 
-from convert_mediapipe_index import get_landmark_name
+from convert_mediapipe_index import get_landmark_name, get_thumb_indices, get_thumb_tip_indices, convert_all_columns_to_friendly_name
+from calculate_joints_and_length import calculate_all_digit_lengths, calculate_angle_between_digit_df
+from calculation_helpers import subtract_lists
 
 import cv2
 
@@ -47,7 +51,7 @@ def get_landmark_pb( landmarks, idx):
     return r
 
 def get_landmark(landmarks, idx):
-    
+
     # Add each landmark's coordinates to the row
     for i, landmark in enumerate(landmarks):
         print(i, landmark)
@@ -147,7 +151,7 @@ def mediapipe_results_to_dataframe(mediapipe_results, existing_df=None):
 
     return df
 
-def hand_landmarks_to_dataframe(detection_result,frame_id):
+def hand_landmarks_to_dataframe(detection_result,frame_id, save_as_list = False, save_extra_columns = False, resolution = (1,1,1)):
     """
     Converts MediaPipe Hand Landmarks and Handedness into a pandas DataFrame.
 
@@ -185,13 +189,21 @@ def hand_landmarks_to_dataframe(detection_result,frame_id):
 
             n_location = landmark_pb2.NormalizedLandmark(x=landmark.x, y=landmark.y, z=landmark.z)
 
-            row[f'x_{i}'] = landmark.x
-            row[f'y_{i}'] = landmark.y
-            row[f'z_{i}'] = landmark.z
-            row[f'presence_{i}'] = landmark.presence
-            row[f'visibility_{i}'] = landmark.visibility
+            if(not save_as_list):
+                row[f'x_{i}'] = landmark.x * resolution[0]
+                row[f'y_{i}'] = landmark.y * resolution[1]
+                row[f'z_{i}'] = landmark.z * resolution[2]
+                if(save_extra_columns):
+                    row[f'presence_{i}'] = landmark.presence
+                    row[f'visibility_{i}'] = landmark.visibility
+            else:
+                row[f'{get_landmark_name(i)}'] = [landmark.x * resolution[0], landmark.y * resolution[1], landmark.z * resolution[2]]
+                if(save_extra_columns):
+                    row[f'presence_{i}'] = [landmark.presence]
+                    row[f'visibility_{i}'] = [landmark.visibility]
 
         rows.append(row)
+
 
     # Create the DataFrame
     df = pd.DataFrame(rows)
@@ -251,6 +263,9 @@ class FrameProcessor:
         # Initialize an empty DataFrame to store data about each frame
         self.data = []
         self.enable_empty_frame_collection = False
+        self.resolution = (1,1,1)
+        self.save_as_list = True
+        self.save_extra_columns = False
 
     def __enter__(self):
         return self
@@ -266,7 +281,7 @@ class FrameProcessor:
         return draw_landmarks_on_image(frame, detection_results)
 
     def get_df_frame(self, detection_results, frame_id):
-        return hand_landmarks_to_dataframe(detection_results,frame_id)
+        return hand_landmarks_to_dataframe(detection_results,frame_id,self.save_as_list,self.save_extra_columns,self.resolution)
 
     def detect(self, image):
         return self.detector.detect(image)
@@ -280,6 +295,9 @@ class FrameProcessor:
         """
         # Use the detector to process the frame
         try:
+            if(self.resolution == (1,1,1)):
+                self.resolution = (frame.shape[1],frame.shape[0],1)
+
             converted_frame = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
             detection_results = self.detect(converted_frame)
 
@@ -309,6 +327,45 @@ class FrameProcessor:
 
     def get_dataframe(self):
         return self.data
+
+    def get_resolution(self):
+        return self.resolution
+    
+    def save_model_data(self, kwargs):
+
+        filename = kwargs.get('output','output.csv')
+        collected_data = kwargs.get('collected_data',True)
+        use_friendly_names = kwargs.get('use_friend_names',True)
+        remove_non_position_columns = kwargs.get('remove_non_position_columns',True)
+        sep = kwargs.get('sep',"\t")
+
+        df = self.get_dataframe()
+
+        if(df is None):
+            raise Exception("Dataframe is None.")
+        
+        if(type(df) is not pd.DataFrame):
+            raise Exception("Dataframe is not a pandas dataframe.")
+        
+        if( df is None or len(df) == 0 or df.shape[0] == 0):            
+            if(collected_data):
+                logging.info("Data was unable to saved on the output file.")
+            else:
+                logging.info("Data was not collected.")            
+            
+            if(use_friendly_names):              
+                df.columns = convert_all_columns_to_friendly_name(df, [])
+
+        if( remove_non_position_columns):
+            # Remove the presence and visibility columns
+            df = df[df.columns.drop(list(df.filter(regex='^presence_\\d+')),errors='ignore')]
+            df = df[df.columns.drop(list(df.filter(regex='^visibility_\\d+')),errors='ignore')]
+
+        print(filename)
+        df.to_csv(filename, index=False, header=True, sep=sep)
+
+
+       
 
 ###########################################################################################################
 
@@ -418,7 +475,7 @@ class FaceDetector_Wrapper(FrameProcessor):
 
 
         return annotated_image
-    
+
 ###########################################################################################################
 
 class HandDistance_Wrapper(FrameProcessor):
@@ -439,26 +496,25 @@ class HandDistance_Wrapper(FrameProcessor):
         self.PIXEL_TO_CM_ESTIMATE = 0.018592443594320586
 
 
-
     def get_distances(self):
         return self.distances
 
 
     def draw_on_image(self, frame, detection_results):
         return draw_landmarks_on_image(frame, detection_results)
-    
+
     def get_df_frame(self, detection_results, frame_id):
-        return hand_landmarks_to_dataframe(detection_results,frame_id)
-    
+        return hand_landmarks_to_dataframe(detection_results,frame_id,self.save_as_list,self.save_extra_columns,self.resolution)
+
 
     def process_frame(self, frame, frame_id):
         detection_results, image =  super().process_frame(frame, frame_id)
 
         if detection_results is not None:
-            
+
             tips = detection_results.hand_landmarks
             height, width, _ = frame.shape
-    
+
             index_proximal_phalanx_size = self.calculate_distance( detection_results.hand_landmarks[0], [6,7], width, height)
             PIXEL_TO_CM_ESTIMATE = self.MY_PROXIMAL_PHALANX_SIZE / index_proximal_phalanx_size["Distance"].sum()
 
@@ -485,14 +541,14 @@ class HandDistance_Wrapper(FrameProcessor):
                 idx += 1
 
         return key_landmarks
-    
+
     def draw_tip_distances(self, image, detection_results, distances):
 
         hand_landmarks_list = detection_results.hand_landmarks
 
         # Loop through the detected hands to visualize.
         for idx in range(len(hand_landmarks_list)):
-            hand_landmarks = hand_landmarks_list[idx]    
+            hand_landmarks = hand_landmarks_list[idx]
 
             # Draw the hand landmarks.
             print(idx)
@@ -500,16 +556,16 @@ class HandDistance_Wrapper(FrameProcessor):
             hand_landmarks_proto.landmark.extend([
             landmark_pb2.NormalizedLandmark(x=landmark.x, y=landmark.y, z=landmark.z) for landmark in hand_landmarks
             ])
-            
+
             solutions.drawing_utils.draw_landmarks(
-                image,  
+                image,
                 hand_landmarks_proto,
                 FINGER_TIP_CONNECTIONS,
                 solutions.drawing_styles.get_default_hand_landmarks_style(),
                 get_default_finger_tip_landmarks_style()
             )
         return image
-          
+
 
     def calculate_distance(self, landmarks, idxs=[4,8,12,16,20], width = 1, height=1):
         """
@@ -521,21 +577,187 @@ class HandDistance_Wrapper(FrameProcessor):
 
         dists = []
         for i in range(0,len(idxs)-1):
-            
+
             if idxs[i] >= len(landmarks) and idxs[i+1] >= len(landmarks):
                 break
 
             idxi = idxs[i]
             idxj = idxs[i+1]
-   
+
             x1, y1, z1 =[ landmarks[idxi].x *width , landmarks[idxi].y * height, landmarks[idxi].z ]
             x2, y2, z2 =[ landmarks[idxj].x *width, landmarks[idxj].y * height, landmarks[idxj].z ]
-            
+
             # Calculate the Euclidean distance between the two landmarks
             distance = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2)
             print(f"Distance between landmarks: {distance:.2f}")
-    
+
             c = {"Connection A": get_landmark_name(idxi),"Connection B":  get_landmark_name(idxs[i+1]), "Distance":distance}
             dists.append(c)
-           
+
         return pd.DataFrame(dists)
+
+
+###########################################################################################################
+
+class HandROM_Thumb_Wrapper(FrameProcessor):
+    def __init__(self, detector):
+        super().__init__(detector)
+
+        # Add Last Calcualted Distances
+        self.angles = []
+
+        # Vectors between each section of digit
+        self.vectors = []
+
+        # Colors for each finger line
+        self.colors = [(0,0,255), (0,255,0), (255,0,0), (255,255,0), (0,255,255)]
+
+        self.min_points = {}
+        self.max_points = {}
+        self.min_values = {}
+        self.max_values = {}
+
+    def get_df_frame(self, detection_results, frame_id):
+        return hand_landmarks_to_dataframe(detection_results,frame_id,self.save_as_list,self.save_extra_columns,self.resolution)
+    
+    def process_frame(self, frame, frame_id):
+
+        detection_results, image =  super().process_frame(frame, frame_id)
+
+        if detection_results is not None:
+            self.calculate_digit_range(detection_results)
+            nimage = self.draw_thumb_ROM(image)
+            if( nimage is None):                
+                return detection_results, image.numpy_view()
+            return detection_results, nimage
+            
+
+        return detection_results, image
+
+    def calculate_tip_movement_digit_range(self,detection_results):
+
+        if( detection_results is None or detection_results.hand_landmarks == []):
+            return
+
+        hand_landmarks_list = detection_results.hand_landmarks
+
+        thumb_indicies = get_thumb_tip_indices()
+        coordinates = ['x','y','z']
+
+        # Write code that checks the hand_landmarks_list and returns the min and max points for the digit
+        # Loop through the detected hands to visualize.
+        for idx in range(len(thumb_indicies)):
+
+            # Gets us the landmark as an array
+            landmark = get_landmark_pb(hand_landmarks_list[0], thumb_indicies[idx])
+
+            # Convert the list of points to a numpy array for easy manipulation
+            # Each position should be in either [x,y,z] or ['x-coordinate','y-coordinate','z-coordinate']
+
+            # Loop through each coordinate to find the max and min points
+            # NOte this will have to change because this is checking local values not maximumums
+            for i, coord in enumerate(coordinates):
+
+                if((coord not in self.max_points) or landmark[i] > self.max_points[coord][i]):
+                    self.max_points[coord] = landmark
+
+                if( (coord not in self.min_points) or landmark[i] < self.min_points[coord][i]):
+                    self.min_points[coord] = landmark
+
+    def calculate_digit_range(self,detection_results):
+
+        if( detection_results is None or detection_results.hand_landmarks == []):
+            return
+
+        hand_landmarks_list = detection_results.hand_landmarks
+
+        # Select the first and last thumb indices
+        thumb_indicies = get_thumb_indices()
+        thumb_idx = [thumb_indicies[0], thumb_indicies[-1]]
+        coordinates = ['x','y','z']
+
+        # Write code that checks the hand_landmarks_list and returns the min and max points for the digit
+        # Loop through the detected hands to visualize.
+                # Gets us the landmark as an array
+        landmark1 = get_landmark_pb(hand_landmarks_list[0], thumb_idx[0])
+        landmark2 = get_landmark_pb(hand_landmarks_list[0], thumb_idx[1])
+        #landmark = subtract_lists(landmark1,landmark2)
+        landmark = subtract_lists(landmark2,landmark1)
+
+
+        # Convert the list of points to a numpy array for easy manipulation
+        # Each position should be in either [x,y,z] or ['x-coordinate','y-coordinate','z-coordinate']
+
+        # Loop through each coordinate to find the max and min points
+        # NOte this will have to change because this is checking local values not maximumums
+        update_min_max = False
+        for i, coord in enumerate(coordinates):
+
+            # This version creates ones of max/min as static while the other is dynamic
+            if(update_min_max):
+                if((coord not in self.max_points) or landmark[i] > self.max_points[coord][i]):
+                    self.max_points[coord] = landmark2
+
+                if( (coord not in self.min_points) or landmark[i] < self.min_points[coord][i]):
+                    self.min_points[coord] = landmark2
+            else:
+                #This version stores the max/min values to show the full ROM of the tip of the thumb.
+                if((coord not in self.max_points) or landmark[i] > self.max_values[coord][i]):
+                    self.max_values[coord] = landmark
+                    self.max_points[coord] = landmark2
+
+                if( (coord not in self.min_points) or landmark[i] < self.min_values[coord][i]):
+                    self.min_values[coord] = landmark
+                    self.min_points[coord] = landmark2
+
+        # Calcualte the angles between the 
+        # TODO - We need to calcualte the angles between the humb min and max points
+        # But most functions are expecting the a dataframe of all the landmarks
+        #self.angles = calculate_angle_between_digit_df(af, Digit.Thumb
+
+    # This function takes the Min/MAx points from a video and draw a circle around it.
+    def draw_thumb_ROM(self, image, include_min_max = True):
+
+        # Draw a circle at the image points created by the min and max points
+        if( image is None):
+            return image
+ 
+        if( 'x' in self.min_points and 'x' in self.max_points and 'y' in self.min_points and 'y' in self.max_points):
+            min_x,max_x = self.min_points['x'], self.max_points['x']
+            min_y,max_y = self.min_points['y'], self.max_points['y']
+
+            # Draw a circle such that these points are on the circumference
+            # Find the center of the circle
+            center_x = (max_x[0] + min_x[0]) / 2
+            center_y = (max_y[1] + min_y[1]) / 2
+
+            # Find the radius of the circle
+            radius = math.sqrt(((max_x[0] - center_x) *self.resolution[0] )** 2 + ((max_y[1] - center_y)*self.resolution[1] ) ** 2)
+
+            try:
+                # Draw the circle on the image
+                x = center_x*self.resolution[0]
+                y = center_y*self.resolution[1]
+                cv2.circle(image, (int(x), int(y)), int(radius), (0, 255, 0), 2)                
+
+                if(include_min_max):
+                    # Draw each min point in a different color
+                    x = min_x[0]*self.resolution[0]
+                    y = min_y[1]*self.resolution[1]
+                    cv2.circle(image, (int(x), int(y)), 20, (255, 0, 0), 1)
+
+                    # Draw the max point in a different color
+                    x = max_x[0]*self.resolution[0]
+                    y = max_y[1]*self.resolution[1]
+                    cv2.circle(image, (int(x), int(y)), 20, (0, 0, 255), 1)
+                return image
+            except Exception as e:
+                print(f"Error drawing the circle: {e}")
+                return None
+        return None
+    
+    def save_model_data(self, kwargs):
+        super().save_model_data(kwargs)
+        # TODO:
+        # Save the angles to a file
+        # Save the max/min points to a file

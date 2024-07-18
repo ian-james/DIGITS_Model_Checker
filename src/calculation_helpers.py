@@ -10,8 +10,7 @@ def calc_digit_length(p1, p2):
 def calculate_angle(v1,v2):
     """
     Calculate the angle between two vectors.
-    """
-    print("Betweeen Vectors: ", v1, v2)
+    """    
     d = np.dot(v1,v2)
     n = np.linalg.norm(v1)*np.linalg.norm(v2)
     s = min(1,max(-1,d/n))
@@ -42,7 +41,9 @@ def calculate_angle_between_each_digit_joint(landmarks, joint_indices1):
     #THUMB CMC, MCP, IP, TIP
     #MCP,PIP,DIP, TIP
     digit = select_landmarks(landmarks, joint_indices1)
-    vectors = convert_landmarks_to_vector(digit)    
+    vectors = convert_landmarks_to_vector(digit)  
+
+    # Apply the calculate angle function to a dataframe of vectors
     r = [calculate_angle(vectors[i], vectors[i+1]) for i in range(len(vectors)-1)]
     return r
 

@@ -18,9 +18,7 @@ from log import set_log_level
 from mediapipe_helpers import *
 
 from convert_mediapipe_index import convert_all_columns_to_friendly_name
-from file_utils import add_extension, change_extension,create_directory, could_be_directory, check_if_file_is_image
-#from ultralytics import YOLO
-
+from file_utils import change_extension,create_directory, check_if_file_is_image
 
 def handle_keyboard():
     # Allow some keyboard actions
@@ -111,7 +109,7 @@ def process_frame_from_cap(cap, frame_processor, show_visual=True):
                 logging.info("Ignoring empty camera frame.")
                 continue
 
-        if(show_visual):
+        if(show_visual):            
             cv2.imshow(WindowName.ORIGINAL.name, image)
         bimage = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
@@ -119,6 +117,7 @@ def process_frame_from_cap(cap, frame_processor, show_visual=True):
             cv2.imshow(WindowName.ENHANCED.name, bimage)
 
         results, rimage = frame_processor.process_frame(bimage,fps.total_num_frames)
+
         if(show_visual):
             cv2.imshow(WindowName.LANDMARKS.name, rimage)
         limage = cv2.cvtColor(rimage, cv2.COLOR_RGB2BGR)
@@ -142,25 +141,6 @@ def process_frame_from_cap(cap, frame_processor, show_visual=True):
     if(show_visual):
         cv2.destroyAllWindows()
 
-
-
-# def load_yolo():
-#     model_name = "yolov8n"
-
-#     # Model Names
-#     #yolov8n-pose.pt
-#     #yolov8s-pose.pt
-#     #yolov8m-pose.pt
-#     #yolov8l-pose.pt yolov8x-pose.pt yolov8x-pose-p6.pt
-
-#     # Create a new YOLO Model
-#     model = YOLO(f"{model_name}.yaml")
-
-#     # Load the model with pre-trained weights
-#     model = YOLO(f"{model_name}.pt")
-
-    return
-
 def get_yolo_settings(args):
     return [
         args['num_hands'],
@@ -180,7 +160,7 @@ def get_mediapipe_settings(args):
 
 
 # Helper function
-def write_model_results_to_csv(filename, df, collected_data = True, use_friendly_names = True):
+def write_model_results_to_csv(filename, df, collected_data = True, use_friendly_names = True, remove_non_position_columns = True   ):
     if( df is None or len(df) == 0 or df.shape[0] == 0):
         if(collected_data):
             logging.info("Data was unable to saved on the output file.")
@@ -192,6 +172,11 @@ def write_model_results_to_csv(filename, df, collected_data = True, use_friendly
         if(use_friendly_names):
               # Convert the columns to user-friendly names
             df.columns = convert_all_columns_to_friendly_name(df, [])
+
+        if( remove_non_position_columns):
+            # Remove the presence and visibility columns
+            df = df[df.columns.drop(list(df.filter(regex='^presence_\\d+')),errors='ignore')]
+            df = df[df.columns.drop(list(df.filter(regex='^visibility_\\d+')),errors='ignore')]
 
         print(filename)
         df.to_csv(filename, index=False, header=True, sep="\t")
@@ -230,7 +215,8 @@ def main():
     # Setup Frame Processor
     if(args['model'] == "mediapipe"):
         hand_model = get_hand_model(*get_mediapipe_settings(args))
-        frame_processor = FrameProcessor(hand_model)
+        #frame_processor = FrameProcessor(hand_model)
+        frame_processor = HandROM_Thumb_Wrapper(hand_model)
     # elif(args['model'] == "yolo"):
     #     frame_processor = FrameProcessor(load_yolo())
     else:
@@ -248,24 +234,15 @@ def main():
         except Exception as e:
             logging.error(f"Failed to read video or camera options. {e}")
 
-
-    # Write the results to a file
-    df = frame_processor.get_dataframe()
-
-    if(args['filename'] == "" or args['filename'].isdigit()):
-        args['filename'] = "saved_frame_data.png"
-
-    if( could_be_directory(args['output']) ):            
-        create_directory(args['output'])
-        args['output'] = os.path.join(args['output'],make_output_filename(args))
-        print("HERE")
-
+    # Create the directory and change the files names.
+    create_directory(args['output'])
+    args['output'] = os.path.join(args['output'],make_output_filename(args))
 
     if(args['output'] == ""):        
         # set the output file to the same name as the input file with csv extension.
         args['output'] = change_extension( os.path.join("output/",make_output_filename(args)))
 
-    write_model_results_to_csv(args['output'], df, args['collect_data'], args['friendly_names'])
+    frame_processor.save_model_data(args)
     logging.info("End of Program")
 
 if __name__ == '__main__':
