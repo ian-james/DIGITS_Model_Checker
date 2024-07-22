@@ -215,10 +215,8 @@ def main():
     # Setup Frame Processor
     if(args['model'] == "mediapipe"):
         hand_model = get_hand_model(*get_mediapipe_settings(args))
-        #frame_processor = FrameProcessor(hand_model)
-        frame_processor = HandROM_Thumb_Wrapper(hand_model)
-    # elif(args['model'] == "yolo"):
-    #     frame_processor = FrameProcessor(load_yolo())
+        frame_processor = FrameProcessor(hand_model)
+        #frame_processor = HandROM_Thumb_Wrapper(hand_model)
     else:
         logging.error("Model not supported.")
         return
@@ -227,6 +225,7 @@ def main():
     if(check_if_file_is_image(args['filename'])):
         image_main(args, frame_processor)
     else:
+
         try:
             with VideoCap_Info.with_no_info() as cap:
                 cap.setup_capture(args['filename'])

@@ -17,7 +17,7 @@ from typing import List, Tuple, Union, Mapping
 
 from convert_mediapipe_index import get_landmark_name, get_thumb_indices, get_thumb_tip_indices, convert_all_columns_to_friendly_name
 from calculate_joints_and_length import calculate_all_digit_lengths, calculate_angle_between_digit_df
-from calculation_helpers import subtract_lists
+from calculation_helpers import subtract_lists, calculate_angle
 
 import cv2
 
@@ -363,10 +363,6 @@ class FrameProcessor:
 
         print(filename)
         df.to_csv(filename, index=False, header=True, sep=sep)
-
-
-       
-
 ###########################################################################################################
 
 class ImageSegmenter_Wrapper(FrameProcessor):
@@ -603,12 +599,6 @@ class HandROM_Thumb_Wrapper(FrameProcessor):
     def __init__(self, detector):
         super().__init__(detector)
 
-        # Add Last Calcualted Distances
-        self.angles = []
-
-        # Vectors between each section of digit
-        self.vectors = []
-
         # Colors for each finger line
         self.colors = [(0,0,255), (0,255,0), (255,0,0), (255,255,0), (0,255,255)]
 
@@ -616,6 +606,11 @@ class HandROM_Thumb_Wrapper(FrameProcessor):
         self.max_points = {}
         self.min_values = {}
         self.max_values = {}
+
+        # Add Last Calcualted Distances
+        self.angles = {}
+        self.diameter = []
+
 
     def get_df_frame(self, detection_results, frame_id):
         return hand_landmarks_to_dataframe(detection_results,frame_id,self.save_as_list,self.save_extra_columns,self.resolution)
@@ -629,40 +624,41 @@ class HandROM_Thumb_Wrapper(FrameProcessor):
             nimage = self.draw_thumb_ROM(image)
             if( nimage is None):                
                 return detection_results, image.numpy_view()
-            return detection_results, nimage
-            
+            return detection_results, nimage            
 
         return detection_results, image
 
-    def calculate_tip_movement_digit_range(self,detection_results):
 
-        if( detection_results is None or detection_results.hand_landmarks == []):
-            return
+    # This function isn't used
+    # def calculate_tip_movement_digit_range(self,detection_results):
 
-        hand_landmarks_list = detection_results.hand_landmarks
+    #     if( detection_results is None or detection_results.hand_landmarks == []):
+    #         return
 
-        thumb_indicies = get_thumb_tip_indices()
-        coordinates = ['x','y','z']
+    #     hand_landmarks_list = detection_results.hand_landmarks
 
-        # Write code that checks the hand_landmarks_list and returns the min and max points for the digit
-        # Loop through the detected hands to visualize.
-        for idx in range(len(thumb_indicies)):
+    #     thumb_indicies = get_thumb_tip_indices()
+    #     coordinates = ['x','y','z']
 
-            # Gets us the landmark as an array
-            landmark = get_landmark_pb(hand_landmarks_list[0], thumb_indicies[idx])
+    #     # Write code that checks the hand_landmarks_list and returns the min and max points for the digit
+    #     # Loop through the detected hands to visualize.
+    #     for idx in range(len(thumb_indicies)):
 
-            # Convert the list of points to a numpy array for easy manipulation
-            # Each position should be in either [x,y,z] or ['x-coordinate','y-coordinate','z-coordinate']
+    #         # Gets us the landmark as an array
+    #         landmark = get_landmark_pb(hand_landmarks_list[0], thumb_indicies[idx])
 
-            # Loop through each coordinate to find the max and min points
-            # NOte this will have to change because this is checking local values not maximumums
-            for i, coord in enumerate(coordinates):
+    #         # Convert the list of points to a numpy array for easy manipulation
+    #         # Each position should be in either [x,y,z] or ['x-coordinate','y-coordinate','z-coordinate']
 
-                if((coord not in self.max_points) or landmark[i] > self.max_points[coord][i]):
-                    self.max_points[coord] = landmark
+    #         # Loop through each coordinate to find the max and min points
+    #         # NOte this will have to change because this is checking local values not maximumums
+    #         for i, coord in enumerate(coordinates):
 
-                if( (coord not in self.min_points) or landmark[i] < self.min_points[coord][i]):
-                    self.min_points[coord] = landmark
+    #             if((coord not in self.max_points) or landmark[i] > self.max_points[coord][i]):
+    #                 self.max_points[coord] = landmark
+
+    #             if( (coord not in self.min_points) or landmark[i] < self.min_points[coord][i]):
+    #                 self.min_points[coord] = landmark
 
     def calculate_digit_range(self,detection_results):
 
@@ -673,17 +669,16 @@ class HandROM_Thumb_Wrapper(FrameProcessor):
 
         # Select the first and last thumb indices
         thumb_indicies = get_thumb_indices()
+        # These are the Thumb Tip and the Thumb Base
         thumb_idx = [thumb_indicies[0], thumb_indicies[-1]]
         coordinates = ['x','y','z']
 
         # Write code that checks the hand_landmarks_list and returns the min and max points for the digit
         # Loop through the detected hands to visualize.
                 # Gets us the landmark as an array
-        landmark1 = get_landmark_pb(hand_landmarks_list[0], thumb_idx[0])
-        landmark2 = get_landmark_pb(hand_landmarks_list[0], thumb_idx[1])
-        #landmark = subtract_lists(landmark1,landmark2)
-        landmark = subtract_lists(landmark2,landmark1)
-
+        base_landmark = get_landmark_pb(hand_landmarks_list[0], thumb_idx[0])
+        tip_landmark = get_landmark_pb(hand_landmarks_list[0], thumb_idx[1])        
+        landmark = subtract_lists(tip_landmark,base_landmark)
 
         # Convert the list of points to a numpy array for easy manipulation
         # Each position should be in either [x,y,z] or ['x-coordinate','y-coordinate','z-coordinate']
@@ -693,27 +688,52 @@ class HandROM_Thumb_Wrapper(FrameProcessor):
         update_min_max = False
         for i, coord in enumerate(coordinates):
 
+            # the absolute value of the landmark
+
+            self.diameter.append(landmark)
             # This version creates ones of max/min as static while the other is dynamic
             if(update_min_max):
                 if((coord not in self.max_points) or landmark[i] > self.max_points[coord][i]):
-                    self.max_points[coord] = landmark2
+                    self.max_points[coord] = tip_landmark
 
                 if( (coord not in self.min_points) or landmark[i] < self.min_points[coord][i]):
-                    self.min_points[coord] = landmark2
+                    self.min_points[coord] = tip_landmark
             else:
                 #This version stores the max/min values to show the full ROM of the tip of the thumb.
                 if((coord not in self.max_points) or landmark[i] > self.max_values[coord][i]):
                     self.max_values[coord] = landmark
-                    self.max_points[coord] = landmark2
+                    self.max_points[coord] = tip_landmark
 
                 if( (coord not in self.min_points) or landmark[i] < self.min_values[coord][i]):
                     self.min_values[coord] = landmark
-                    self.min_points[coord] = landmark2
+                    self.min_points[coord] = tip_landmark
 
-        # Calcualte the angles between the 
-        # TODO - We need to calcualte the angles between the humb min and max points
-        # But most functions are expecting the a dataframe of all the landmarks
-        #self.angles = calculate_angle_between_digit_df(af, Digit.Thumb
+        # Calculate the angle between the min and max vector points
+        for i, coord in enumerate(coordinates):
+            if(coord not in self.max_points or coord not in self.min_points):
+                continue
+
+
+            # calculate the center between the min and max points
+            center = self.calculate_center()
+
+            # Calculate the angle between the center and the min and max points
+            v1 = subtract_lists(self.min_points[coord], center)
+            v2 = subtract_lists(self.max_points[coord], center)            
+            self.angles[coord] = calculate_angle(v1,v2)
+
+    def calculate_center(self):
+        # Find the center of the circle
+        if( 'x' in self.min_points and 'x' in self.max_points and 'y' in self.min_points and 'y' in self.max_points):
+            min_x,max_x = self.min_points['x'], self.max_points['x']
+            min_y,max_y = self.min_points['y'], self.max_points['y']
+            
+            center_x = (max_x[0] + min_x[0]) / 2
+            center_y = (max_y[1] + min_y[1]) / 2
+
+            return (center_x, center_y )
+        return None
+        
 
     # This function takes the Min/MAx points from a video and draw a circle around it.
     def draw_thumb_ROM(self, image, include_min_max = True):
@@ -758,6 +778,23 @@ class HandROM_Thumb_Wrapper(FrameProcessor):
     
     def save_model_data(self, kwargs):
         super().save_model_data(kwargs)
-        # TODO:
-        # Save the angles to a file
-        # Save the max/min points to a file
+
+        filename = kwargs.get('output','output.csv')
+        sep = kwargs.get('sep',"\t")
+        
+        angles_file = filename.replace(".csv","_angles.csv")
+        if( self.angles):
+            df_angles = pd.DataFrame.from_dict(self.angles, orient='index')
+            df_angles.to_csv(angles_file, index=False, header=True, sep=sep)
+
+        diameter_file = filename.replace(".csv","_diameter.csv")
+        if( self.diameter):            
+            df_diameter = pd.DataFrame(columns=['x','y','z'], data=self.diameter)
+
+            # Multiply each column by the resolution to get the actual values
+            df_diameter['x'] = df_diameter['x'] * self.resolution[0]
+            df_diameter['y'] = df_diameter['y'] * self.resolution[1]
+            df_diameter['z'] = df_diameter['z'] * self.resolution[2]
+
+            df_diameter.to_csv(diameter_file, index=False, header=True, sep=sep)        
+

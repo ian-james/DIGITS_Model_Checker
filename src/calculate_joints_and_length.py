@@ -13,6 +13,18 @@ from calculation_helpers import calculate_angle, calculate_angle_between_each_di
 
 from convert_mediapipe_index import *
 
+import ast
+def safe_literal_eval(val):
+    try:
+        return ast.literal_eval(val)
+    except (ValueError, SyntaxError):
+        return val
+    
+def apply_literal_eval_all(df):
+    for col in df.columns:
+        df[col] = df[col].apply(safe_literal_eval)
+    return df
+
 def setup_arguments():
 
 
@@ -21,34 +33,11 @@ def setup_arguments():
 
     ap.add_argument("-l", "--log", type=str, default="info", help="Set the logging level. (debug, info, warning, error, critical)")
 
-    ap.add_argument("-f", "--filename", type=str, default="./output/rgb_1_0000141_fps_30_mediapipe_nh_1_md_0.4_mt_0.4_mp_0.4.csv", help="Load a CSV file that has been evaluated by mediapipe to produce landmark information.")
+    ap.add_argument("-f", "--filename", type=str, default="./output/CS-L-1-00_mediapipe_nh_2_md_0.8_mt_0.8_mp_0.5.csv", help="Load a CSV file that has been evaluated by mediapipe to produce landmark information.")
 
     ap.add_argument("-o", "--out_filename", type=str, default="out_data.csv", help="Save the digit lengths and angles to a file")
 
     return ap
-
-# The Headings are
-# Wrist (X-coordinate)	Wrist (Y-coordinate)	Wrist (Z-coordinate)
-# Thumb CMC (X-coordinate)	Thumb CMC (Y-coordinate)	Thumb CMC (Z-coordinate)
-# Thumb MCP (Y-coordinate)	Thumb MCP (Z-coordinate)
-#	Thumb IP (X-coordinate)	Thumb IP (Y-coordinate)	Thumb IP (Z-coordinate)
-#	Thumb Tip (X-coordinate)	Thumb Tip (Y-coordinate)	Thumb Tip \(Z-coordinate\)
-#	Index Finger MCP (X-coordinate)	Index Finger MCP (Y-coordinate)	Index Finger MCP (Z-coordinate)
-#	Index Finger PIP (X-coordinate)	Index Finger PIP (Y-coordinate)	Index Finger PIP (Z-coordinate)
-#	Index Finger DIP (X-coordinate)	Index Finger DIP (Y-coordinate)	Index Finger DIP (Z-coordinate)
-#	Index Finger Tip (X-coordinate)	Index Finger Tip (Y-coordinate)	Index Finger Tip (Z-coordinate)
-#	Middle Finger MCP (X-coordinate)	Middle Finger MCP (Y-coordinate)	Middle Finger MCP (Z-coordinate)
-#	Middle Finger PIP (X-coordinate)	Middle Finger PIP (Y-coordinate)	Middle Finger PIP (Z-coordinate)
-#	Middle Finger DIP (X-coordinate)	Middle Finger DIP (Y-coordinate)	Middle Finger DIP (Z-coordinate)
-#	Middle Finger Tip (X-coordinate)	Middle Finger Tip (Y-coordinate)	Middle Finger Tip (Z-coordinate)
-#	Ring Finger MCP (X-coordinate)	Ring Finger MCP (Y-coordinate)	Ring Finger MCP (Z-coordinate)
-#	Ring Finger PIP (X-coordinate)	Ring Finger PIP (Y-coordinate)	Ring Finger PIP (Z-coordinate)
-#	Ring Finger DIP (X-coordinate)	Ring Finger DIP (Y-coordinate)	Ring Finger DIP (Z-coordinate)
-#	Ring Finger Tip (X-coordinate)	Ring Finger Tip (Y-coordinate)	Ring Finger Tip (Z-coordinate)
-#	Pinky MCP (X-coordinate)	Pinky MCP (Y-coordinate)	Pinky MCP (Z-coordinate)
-#	Pinky PIP (X-coordinate)	Pinky PIP (Y-coordinate)	Pinky PIP (Z-coordinate)
-#	Pinky DIP (X-coordinate)	Pinky DIP (Y-coordinate)	Pinky DIP (Z-coordinate)
-#	Pinky Tip (X-coordinate)	Pinky Tip (Y-coordinate)	Pinky Tip (Z-coordinate)
 
 # Calculate the distance between two points in 3D space.
 def calculate_length( p1, p2):
@@ -82,9 +71,6 @@ def calculate_all_digit_lengths(df, digit_names):
         digit_lengths[digit+"_Length"] = digit_length.reset_index(drop=True)
 
     return digit_lengths
-
-
-
 
 # Calculate the min/max of the video, must provide the column names in full
 # Index Finger MCP (X-coordinate)
@@ -161,7 +147,7 @@ def calculate_full_digit_range_df(df, column_name, coordinate_names=['x','y','z'
         return [min_points, max_points]
 
 
-
+# Need to have the landmarks
 def calculate_all_finger_angles(landmarks, add_wrist_to_indices=False, add_wrist = False):
     digit_indices = get_all_fingers_indices(add_wrist_to_indices, add_wrist)
     return {
@@ -205,7 +191,13 @@ def calculate_angle_between_digit_df(df, digit_name, coordinate_names):
 
 def calculate_all_finger_angle_df(df, digit_names, coordinate_names):
     if( df is None):
-        return None
+        return None    
+
+    if( digit_names is None):
+        digit_names = get_all_landmark_names()
+
+    if( coordinate_names is None):
+        coordinate_names = default_coordinate_names()
 
     # For each digit, calculate the vector between each adjacvent point
     # Then calculate the angle between each vector
@@ -237,6 +229,7 @@ def calculate_all_finger_angles_csv(df, digit_names, coordinate_names):
 
         #Get the Next Column
 
+    # TODO Complete this function
 
 def convert_csv_with_xyz_to_landmarks(df):
 
@@ -262,8 +255,72 @@ def convert_csv_to_landmarks(df):
         landmarks.append(landmark)
     return landmarks
 
+def main_xyz_df(args, df):  
+
+    # Load the CSV file
+    df = pd.read_csv(args['filename'],sep="\t")
+    if( df is None):
+        logging.error(f"Failed to load file: {args['filename']}")
+        return
+
+    df = convert_csv_with_xyz_to_landmarks(df)
+
+    df = apply_literal_eval_all(df)    
+    pprint(df.dtypes)
+    
+    # Calculate the digit lengths
+    digit_lengths = calculate_all_digit_lengths(df, None )
+    logging.info(f"Digit Lengths: {digit_lengths}")
+
+    ldf = pd.DataFrame.from_dict(digit_lengths)
+    ldf.to_csv("./output/Digit_Lengths.csv", index=False, sep=",")
+
+    # Calculate the angles between each joint
+    #fangles = calculate_angle_between_digit_df(df, Digit.Index.name, None)
+    fangles = calculate_all_finger_angle_df(df, None, [])
+
+    # # Calculate the angles between each joint
+    #fangles = calculate_all_finger_angles( True)
+    # Save the results to a new CSV file
+    # adf = pd.DataFrame.from_dict(finger_angles, orient='index')
+    fangles.to_csv("./output/Digit_ROM.csv", index=False, sep=",")
+
+    # #Combine the two dataframes
+    # combined_df = pd.concat([ldf, adf], axis=1)
+    # combined_df.to_csv("./output/Combined.csv", index=False)
+
+def main_coordinates(args, df):  
+    
+    df = convert_csv_with_xyz_to_landmarks(df)
+
+    df = apply_literal_eval_all(df)    
+    pprint(df.dtypes)
+    
+    # Calculate the digit lengths
+    digit_lengths = calculate_all_digit_lengths(df, None )
+    logging.info(f"Digit Lengths: {digit_lengths}")
+
+    ldf = pd.DataFrame.from_dict(digit_lengths)
+    ldf.to_csv("./output/Digit_Lengths.csv", index=False, sep=",")
+
+    # Calculate the angles between each joint
+    #fangles = calculate_angle_between_digit_df(df, Digit.Index.name, None)
+    fangles = calculate_all_finger_angle_df(df, None, None)
+
+    # # Calculate the angles between each joint
+    #fangles = calculate_all_finger_angles( True)
+    # Save the results to a new CSV file
+    # adf = pd.DataFrame.from_dict(finger_angles, orient='index')
+    fangles.to_csv("./output/Digit_ROM.csv", index=False, sep=",")
+
+    # #Combine the two dataframes
+    # combined_df = pd.concat([ldf, adf], axis=1)
+    # combined_df.to_csv("./output/Combined.csv", index=False)
+
+
+
 def main():
-      # Setup Arguments
+    # Setup Arguments
     ap = setup_arguments()
     args = vars(ap.parse_args())
 
@@ -276,34 +333,18 @@ def main():
         logging.error(f"File not found: {args['filename']}")
         return
 
+
     # Load the CSV file
     df = pd.read_csv(args['filename'],sep="\t")
     if( df is None):
         logging.error(f"Failed to load file: {args['filename']}")
         return
-
-    df = convert_csv_with_xyz_to_landmarks(df)
-
-    # Calculate the digit lengths
-    digit_lengths = calculate_all_digit_lengths(df, None )
-    logging.info(f"Digit Lengths: {digit_lengths}")
-
-    ldf = pd.DataFrame.from_dict(digit_lengths)
-    ldf.to_csv("./output/Digit_Lengths.csv", index=False)
-
-    # Calculate the angles between each joint
-    fangles = calculate_angle_between_digit_df(df, Digit.Index.name, None)
-
-    # # Calculate the angles between each joint
-    # finger_angles = calculate_all_finger_angles(landmarks, True)
-    # Save the results to a new CSV file
-    # adf = pd.DataFrame.from_dict(finger_angles, orient='index')
-    fangles.to_csv("./output/Digit_ROM.csv", index=False)
-
-    # #Combine the two dataframes
-    # combined_df = pd.concat([ldf, adf], axis=1)
-    # combined_df.to_csv("./output/Combined.csv", index=False)
-
+    
+    if( 'Thumb Tip' in df.columns):
+        main_xyz_df(args, df)
+    else:
+        main_coordinates(args, df)
+   
 
 #********************************************************************************************************************
 # Test Section

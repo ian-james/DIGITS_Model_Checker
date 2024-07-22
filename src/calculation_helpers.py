@@ -11,12 +11,23 @@ def calculate_angle(v1,v2):
     """
     Calculate the angle between two vectors.
     """    
+
     d = np.dot(v1,v2)
     n = np.linalg.norm(v1)*np.linalg.norm(v2)
     s = min(1,max(-1,d/n))
     r = math.acos(s)
     r2 =  r * (180/math.pi)
+    
     return math.degrees(r )
+
+
+def calculate_angle_between_three_points(p1, p2, p3):
+    """
+    Calculate the angle between three points.
+    """
+    v1 = subtract_lists(p1,p2)
+    v2 = subtract_lists(p3,p2)
+    return calculate_angle(v1,v2)
 
 def subtract_lists(list1, list2):
     """
