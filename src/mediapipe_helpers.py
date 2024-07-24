@@ -312,7 +312,7 @@ class FrameProcessor:
                 frame_data = setup_frame_dictionary(frame_id)
                 self.data.append(frame_data)
 
-            return detection_results, converted_frame
+            return detection_results, frame
 
 
         except Exception as e:

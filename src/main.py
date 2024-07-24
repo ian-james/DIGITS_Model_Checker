@@ -230,18 +230,18 @@ def main():
             with VideoCap_Info.with_no_info() as cap:
                 cap.setup_capture(args['filename'])
                 process_frame_from_cap(cap, frame_processor, args['show_visual'])
+
+            # Create the directory and change the files names.
+            create_directory(args['output'])
+            args['output'] = os.path.join(args['output'],make_output_filename(args))
+
+            if(args['output'] == ""):        
+                # set the output file to the same name as the input file with csv extension.
+                args['output'] = change_extension( os.path.join("output/",make_output_filename(args)))
+
+            frame_processor.save_model_data(args)
         except Exception as e:
             logging.error(f"Failed to read video or camera options. {e}")
-
-    # Create the directory and change the files names.
-    create_directory(args['output'])
-    args['output'] = os.path.join(args['output'],make_output_filename(args))
-
-    if(args['output'] == ""):        
-        # set the output file to the same name as the input file with csv extension.
-        args['output'] = change_extension( os.path.join("output/",make_output_filename(args)))
-
-    frame_processor.save_model_data(args)
     logging.info("End of Program")
 
 if __name__ == '__main__':
