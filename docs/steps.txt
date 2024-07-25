@@ -1,0 +1,19 @@
+Running Mediapipe
+
+0) Python 3.11 Setup
+1) Download GitHub Code
+2) Create a folder of videos to analyze
+
+3) Run a processing Script
+   3a) Run process_all_script
+	a) This creates original CSV files for Mediapipe
+	b) Does Descriptive Statistics
+	c) Calculates Deviation of a position at each frame
+
+   Alternatively, if you don't want all all 3a) a-c 
+   3) process_mediapipe
+
+4) Calculate Digit Length, ROM, and Circumduction
+  
+
+5) Other Analysis
