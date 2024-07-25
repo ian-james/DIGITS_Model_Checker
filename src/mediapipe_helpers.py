@@ -264,7 +264,7 @@ class FrameProcessor:
         self.data = []
         self.enable_empty_frame_collection = False
         self.resolution = (1,1,1)
-        self.save_as_list = True
+        self.save_as_list = False
         self.save_extra_columns = False
 
     def __enter__(self):
@@ -335,7 +335,7 @@ class FrameProcessor:
 
         filename = kwargs.get('output','output.csv')
         collected_data = kwargs.get('collected_data',True)
-        use_friendly_names = kwargs.get('use_friend_names',True)
+        use_friendly_names = kwargs.get('use_friendly_names',True)
         remove_non_position_columns = kwargs.get('remove_non_position_columns',True)
         sep = kwargs.get('sep',"\t")
 
@@ -353,8 +353,8 @@ class FrameProcessor:
             else:
                 logging.info("Data was not collected.")            
             
-            if(use_friendly_names):              
-                df.columns = convert_all_columns_to_friendly_name(df, [])
+        if(use_friendly_names):              
+            df.columns = convert_all_columns_to_friendly_name(df, [])
 
         if( remove_non_position_columns):
             # Remove the presence and visibility columns

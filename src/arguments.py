@@ -10,9 +10,7 @@ def setup_arguments():
     ap.add_argument("-l", "--log", type=str, default="info", help="Set the logging level. (debug, info, warning, error, critical)")
 
     ap.add_argument("-s", "--show_visual", action="store_true", help="Show Windows with visual information.")
-    ap.add_argument("-z", "--lag", action="store_true", help="lag the video frames to simulate real time.")
-
-
+  
     # Add an option to load a video file instead of a camera.
     # Default to 0 for the camera.
     #../videos/tests/quick_flexion_test.mp4
@@ -25,7 +23,7 @@ def setup_arguments():
     ap.add_argument("-ef", "--extend_frames", type=int, default=0)
 
     # Add an option to load a video file instead of a camera.
-    ap.add_argument("-fn", "--friendly_names", action="store_false", help="Use friendly names for the columns in the output file.")
+    ap.add_argument("-fn", "--use_friendly_names", action="store_false", help="Use friendly names for the columns in the output file.")
 
     ap.add_argument("-r", "--resolution", action="store_false", help="Use Image Resolution for the output file.")
 

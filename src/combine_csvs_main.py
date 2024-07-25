@@ -24,7 +24,7 @@ def get_directory(file_path):
 
 def main():
     parser = argparse.ArgumentParser(description="Create a video from a single image.")    
-    parser.add_argument("-d","--directory", type=str, default="output/nyu/videos/fps_30/md_05_mt_05_mp_05/", help="Path to the input csv.") 
+    parser.add_argument("-d","--directory", type=str, default="datasets/test_steps/analysis/nh_1_md_0.5_mt_0.5_mp_0.5/csvs/", help="Path to the input csv.") 
     parser.add_argument("-o","--out_filename", type=str, default="combine_output.csv", help="Path and filename for the converted video.")
     parser.add_argument("-s","--stats_directory", type=str, default="", help="Specific Path for stats files (optional).") 
     parser.add_argument("-m","-stats", type=str, default="var", help="Statistics to compute (var, std, mean, max, min)")
@@ -72,7 +72,7 @@ def main():
                     'nh': components[5],
                     'md': components[7],
                     'mt': components[9],
-                    'mp': components[11].split('.')[0],
+                    'mp': os.path.splitext(components[11])[0],
                     'model': components[3]
                 }
 
