@@ -20,9 +20,9 @@ usage() {
 }
 
 # Default values
-md_value="0.5" 
-mt_value="0.5"
-mp_value="0.5"
+md_value="0.8" 
+mt_value="0.8"
+mp_value="0.8"
 nh_value="1"
 
 num_files=0

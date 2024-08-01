@@ -215,10 +215,11 @@ def main():
     # Setup Frame Processor
     if(args['model'] == "mediapipe"):
         hand_model = get_hand_model(*get_mediapipe_settings(args))
-        frame_processor = FrameProcessor(hand_model)
-        #frame_processor = HandROM_Thumb_Wrapper(hand_model)
+        #frame_processor = FrameProcessor(hand_model)
+        frame_processor = HandROM_Thumb_Wrapper(hand_model)
     else:
         logging.error("Model not supported.")
+        
         return
 
     # Run the program for an images

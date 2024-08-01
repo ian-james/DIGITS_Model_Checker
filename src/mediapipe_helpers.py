@@ -17,7 +17,7 @@ from typing import List, Tuple, Union, Mapping
 
 from convert_mediapipe_index import get_landmark_name, get_thumb_indices, get_thumb_tip_indices, convert_all_columns_to_friendly_name
 from calculate_joints_and_length import calculate_all_digit_lengths, calculate_angle_between_digit_df
-from calculation_helpers import subtract_lists, calculate_angle
+from calculation_helpers import subtract_lists, calculate_angle, calculate_angles2
 
 import cv2
 
@@ -330,7 +330,7 @@ class FrameProcessor:
 
     def get_resolution(self):
         return self.resolution
-    
+
     def save_model_data(self, kwargs):
 
         filename = kwargs.get('output','output.csv')
@@ -343,17 +343,17 @@ class FrameProcessor:
 
         if(df is None):
             raise Exception("Dataframe is None.")
-        
+
         if(type(df) is not pd.DataFrame):
             raise Exception("Dataframe is not a pandas dataframe.")
-        
-        if( df is None or len(df) == 0 or df.shape[0] == 0):            
+
+        if( df is None or len(df) == 0 or df.shape[0] == 0):
             if(collected_data):
                 logging.info("Data was unable to saved on the output file.")
             else:
-                logging.info("Data was not collected.")            
-            
-        if(use_friendly_names):              
+                logging.info("Data was not collected.")
+
+        if(use_friendly_names):
             df.columns = convert_all_columns_to_friendly_name(df, [])
 
         if( remove_non_position_columns):
@@ -608,23 +608,24 @@ class HandROM_Thumb_Wrapper(FrameProcessor):
         self.max_values = {}
 
         # Add Last Calcualted Distances
-        self.angles = {}
+        self.angles = []
         self.diameter = []
 
 
     def get_df_frame(self, detection_results, frame_id):
         return hand_landmarks_to_dataframe(detection_results,frame_id,self.save_as_list,self.save_extra_columns,self.resolution)
-    
+
     def process_frame(self, frame, frame_id):
 
         detection_results, image =  super().process_frame(frame, frame_id)
 
         if detection_results is not None:
             self.calculate_digit_range(detection_results)
-            nimage = self.draw_thumb_ROM(image)
-            if( nimage is None):                
-                return detection_results, image.numpy_view()
-            return detection_results, nimage            
+            nimage = self.draw_thumb_ROM(image,detection_results)
+            if( nimage is None):
+                #return detection_results, image.numpy_view()
+                return detection_results, image
+            return detection_results, nimage
 
         return detection_results, image
 
@@ -677,7 +678,7 @@ class HandROM_Thumb_Wrapper(FrameProcessor):
         # Loop through the detected hands to visualize.
                 # Gets us the landmark as an array
         base_landmark = get_landmark_pb(hand_landmarks_list[0], thumb_idx[0])
-        tip_landmark = get_landmark_pb(hand_landmarks_list[0], thumb_idx[1])        
+        tip_landmark = get_landmark_pb(hand_landmarks_list[0], thumb_idx[1])
         landmark = subtract_lists(tip_landmark,base_landmark)
 
         # Convert the list of points to a numpy array for easy manipulation
@@ -689,7 +690,6 @@ class HandROM_Thumb_Wrapper(FrameProcessor):
         for i, coord in enumerate(coordinates):
 
             # the absolute value of the landmark
-
             self.diameter.append(landmark)
             # This version creates ones of max/min as static while the other is dynamic
             if(update_min_max):
@@ -708,40 +708,40 @@ class HandROM_Thumb_Wrapper(FrameProcessor):
                     self.min_values[coord] = landmark
                     self.min_points[coord] = tip_landmark
 
-        # Calculate the angle between the min and max vector points
-        for i, coord in enumerate(coordinates):
-            if(coord not in self.max_points or coord not in self.min_points):
-                continue
+        # Calculate the angle between the min and max vector points             
+        center = get_landmark_pb(hand_landmarks_list[0], thumb_idx[0])
 
+        # Calculate the angle between the center and the min and max points
+        v1 = subtract_lists(self.min_points['x'], center)
+        v2 = subtract_lists(self.max_points['x'], center)
+        a = calculate_angle(v1,v2)
 
-            # calculate the center between the min and max points
-            center = self.calculate_center()
-
-            # Calculate the angle between the center and the min and max points
-            v1 = subtract_lists(self.min_points[coord], center)
-            v2 = subtract_lists(self.max_points[coord], center)            
-            self.angles[coord] = calculate_angle(v1,v2)
+        # if both vectors are two small, then we can't calculate the angle
+        if( abs(v1[0]) < 0.0005 and abs(v1[1]) < 0.0005 and v2[0] < 0.0005 and abs(v2[1]) < 0.0005):
+            a = 0   
+        
+        self.angles.append(a)
 
     def calculate_center(self):
         # Find the center of the circle
         if( 'x' in self.min_points and 'x' in self.max_points and 'y' in self.min_points and 'y' in self.max_points):
             min_x,max_x = self.min_points['x'], self.max_points['x']
             min_y,max_y = self.min_points['y'], self.max_points['y']
-            
+
             center_x = (max_x[0] + min_x[0]) / 2
             center_y = (max_y[1] + min_y[1]) / 2
 
             return (center_x, center_y )
         return None
-        
+
 
     # This function takes the Min/MAx points from a video and draw a circle around it.
-    def draw_thumb_ROM(self, image, include_min_max = True):
+    def draw_thumb_ROM(self, image, detection_results, include_min_max = True):
 
         # Draw a circle at the image points created by the min and max points
         if( image is None):
             return image
- 
+
         if( 'x' in self.min_points and 'x' in self.max_points and 'y' in self.min_points and 'y' in self.max_points):
             min_x,max_x = self.min_points['x'], self.max_points['x']
             min_y,max_y = self.min_points['y'], self.max_points['y']
@@ -758,37 +758,65 @@ class HandROM_Thumb_Wrapper(FrameProcessor):
                 # Draw the circle on the image
                 x = center_x*self.resolution[0]
                 y = center_y*self.resolution[1]
-                cv2.circle(image, (int(x), int(y)), int(radius), (0, 255, 0), 2)                
+                cv2.circle(image, (int(x), int(y)), int(radius), (0, 255, 0), 2)
 
                 if(include_min_max):
                     # Draw each min point in a different color
                     x = min_x[0]*self.resolution[0]
                     y = min_y[1]*self.resolution[1]
-                    cv2.circle(image, (int(x), int(y)), 20, (255, 0, 0), 1)
+                    cv2.circle(image, (int(x), int(y)), 10, (255, 0, 0),1)
 
                     # Draw the max point in a different color
                     x = max_x[0]*self.resolution[0]
                     y = max_y[1]*self.resolution[1]
-                    cv2.circle(image, (int(x), int(y)), 20, (0, 0, 255), 1)
+                    cv2.circle(image, (int(x), int(y)), 10, (0, 0, 255), 1)
+
+                    # Calculate the angle between the min and max points
+                    if( detection_results is None or detection_results.hand_landmarks == []):
+                        return image
+
+                    hand_landmarks_list = detection_results.hand_landmarks
+
+                    # Select the first and last thumb indices
+                    thumb_indicies = get_thumb_indices()
+                    thumb_idx = thumb_indicies[0]
+                    base_landmark = get_landmark_pb(hand_landmarks_list[0], thumb_idx)
+
+                    # Calculate base landmark location
+
+                    x = int(base_landmark[0]*self.resolution[0])
+                    y = int(base_landmark[1]*self.resolution[1])
+
+                    mx = int(abs(self.max_points['x'][0]*self.resolution[0]))
+                    my = int(abs(self.max_points['x'][1]*self.resolution[1]))
+                    
+                    # Max Line - Pink
+                    cv2.line(image, (int(x), int(y)), (mx,my), (255, 0, 255), 2)
+
+                    #Min Line - Yellow
+                    xmin = int(self.min_points['x'][0]*self.resolution[0])
+                    ymin = int(self.min_points['x'][1]*self.resolution[1])
+                    cv2.line(image, (int(x), int(y)), (xmin,ymin), (255, 255, 0), 2)
+                    
                 return image
             except Exception as e:
                 print(f"Error drawing the circle: {e}")
                 return None
         return None
-    
+
     def save_model_data(self, kwargs):
         super().save_model_data(kwargs)
 
         filename = kwargs.get('output','output.csv')
         sep = kwargs.get('sep',"\t")
-        
+
         angles_file = filename.replace(".csv","_angles.csv")
         if( self.angles):
-            df_angles = pd.DataFrame.from_dict(self.angles, orient='index')
+            df_angles = pd.DataFrame(columns=['angle'],data=self.angles)
             df_angles.to_csv(angles_file, index=False, header=True, sep=sep)
 
         diameter_file = filename.replace(".csv","_diameter.csv")
-        if( self.diameter):            
+        if( self.diameter):
             df_diameter = pd.DataFrame(columns=['x','y','z'], data=self.diameter)
 
             # Multiply each column by the resolution to get the actual values
@@ -796,5 +824,5 @@ class HandROM_Thumb_Wrapper(FrameProcessor):
             df_diameter['y'] = df_diameter['y'] * self.resolution[1]
             df_diameter['z'] = df_diameter['z'] * self.resolution[2]
 
-            df_diameter.to_csv(diameter_file, index=False, header=True, sep=sep)        
+            df_diameter.to_csv(diameter_file, index=False, header=True, sep=sep)
 

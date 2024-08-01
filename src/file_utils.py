@@ -15,12 +15,12 @@ def copy_csv_to_excel(csv_file, excel_file):
 
 def change_extension(file_path, extension="csv"):
     # Split the path into the name and extension
-    
+
     base_name, _ = file_path.rsplit('.', 1)
     # Define the new extension
-    new_file_path = f"{base_name}.{extension}"    
+    new_file_path = f"{base_name}.{extension}"
     return new_file_path
-  
+
 def add_extension(filename, extension=".csv"):
     basename, ext = os.path.splitext(filename)
     if ext == extension:
@@ -65,7 +65,7 @@ def could_be_directory(path):
 
     # Check for multiple segments in the path, which are more indicative of a directory structure
     segments = normalized_path.split(os.sep)
-    
+
     # Return true if there are multiple segments, suggesting a directory-like structure
     return len(segments) > 1
 
@@ -88,3 +88,37 @@ def check_if_file_is_image(filename):
     if(filename.endswith(".jpg") or filename.endswith(".png")):
         return True
     return False
+
+
+
+def setupCSV2(filename, sept='\t'):
+    if( os.path.isfile(filename) ):
+        try:
+            f, fext = os.path.splitext(filename)
+            if(fext == ".xlsx"):
+                return pd.read_excel(filename)
+            elif( fext == ".csv"):
+                return  pd.read_csv(filename, sep=sept, encoding="ISO-8859-1",keep_default_na=True)
+            elif( fext == ".tsv"):
+                return  pd.read_csv(filename, sep=sept, encoding="ISO-8859-1",keep_default_na=True)
+        except Exception as e:
+            print(f"Error reading file CSV2: {e}")
+    return None
+
+def findSep(filename):
+    try:
+        with open(filename, "r") as testFile:
+            lines = testFile.readlines()
+            if( lines[0].count(',') >= 1):
+                return ','
+            return '\t'
+    except Exception as e:
+        print(f"Unknown separator: {e}")
+    return None
+
+def setupAnyCSV(filename):
+    sep = findSep(filename)
+    if(sep):
+        return setupCSV2(filename,sep)
+    return None
+
