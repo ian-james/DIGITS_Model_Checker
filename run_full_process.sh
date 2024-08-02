@@ -50,10 +50,11 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-echo md_value
-echo mt_value
-echo mp_value
-echo nh_value
+echo $md_value
+echo $mt_value
+echo $mp_value
+echo $nh_value
+echo "HERE"
 
 echo num_files
 echo shuffle
@@ -88,13 +89,13 @@ fi
 
 # Ensure the CSV output directory exists or create it
 # Settings dir is meant to distinguish runs and aligns with python make_output_folder
-settings_dir='nh_'$nh_value'_md_'$md_value'_mt_'$md_value'_mp_'$mp_value'/'
+settings_dir='nh_'$nh_value'_md_'$md_value'_mt_'$mt_value'_mp_'$mp_value'/'
 
 csvs_out=$csv_output_directory$settings_dir'csvs/'
 mkdir -p "$csvs_out"
 
 echo -e "\nStarting Mediapipe on video files."
-./process_mediapipe.sh -n $num_files -i $videos_directory -o $csvs_out -nh $nh_value -md $md_value -mt $md_value -mp $mp_value 
+./process_mediapipe.sh -n $num_files -i $videos_directory -o $csvs_out -nh $nh_value -md $md_value -mt $mt_value -mp $mp_value 
 
 if [ $? -eq 0 ]; then
 	echo "Process completed."

@@ -96,9 +96,10 @@ def calculate_angle_between_each_digit_joint(landmarks, joint_indices1):
     r = [calculate_angle(vectors[i], vectors[i+1]) for i in range(len(vectors)-1)]
     return r
 
-
-
-
+def calculate_area_2d(points):
+    n = len(points)
+    area = 0.5 * np.abs(np.dot(points[:, 0], np.roll(points[:, 1], 1)) - np.dot(points[:, 1], np.roll(points[:, 0], 1)))
+    return area
 
 if __name__ == "__main__":
     # Test the functions

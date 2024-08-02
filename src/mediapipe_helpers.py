@@ -610,12 +610,34 @@ class HandROM_Thumb_Wrapper(FrameProcessor):
         # Add Last Calcualted Distances
         self.angles = []
         self.diameter = []
+        self.mask = None
 
 
     def get_df_frame(self, detection_results, frame_id):
         return hand_landmarks_to_dataframe(detection_results,frame_id,self.save_as_list,self.save_extra_columns,self.resolution)
+    
+    def calculate_mask(self, detection_results):
+
+        # Get the Tip and Base of the thumb
+        thumb_indicies = get_thumb_indices()
+        thumb_idx = [thumb_indicies[0], thumb_indicies[-1]]
+
+        # Get the landmarks
+        base_landmark = get_landmark_pb(detection_results.hand_landmarks[0], thumb_idx[0])
+        tip_landmark = get_landmark_pb(detection_results.hand_landmarks[0], thumb_idx[1])
+
+        # add the base and tip to the mask
+        x1, y1, z1 = base_landmark
+        x2, y2, z2 = tip_landmark
+
+        # Calculate the Euclidean distance between the two landmarks
+        distance = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2)
+
 
     def process_frame(self, frame, frame_id):
+
+        if(self.mask == None):            
+            self.mask = np.zeros(frame.shape, dtype=np.uint8)
 
         detection_results, image =  super().process_frame(frame, frame_id)
 
