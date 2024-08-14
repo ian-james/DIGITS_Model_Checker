@@ -149,9 +149,9 @@ def get_yolo_settings(args):
         args['min_tracking_confidence']
     ]
 
-
 def get_mediapipe_settings(args):
     return [
+        
         args['num_hands'],
         args['min_detection_confidence'],
         args['min_presense_confidence'],
@@ -215,8 +215,8 @@ def main():
     # Setup Frame Processor
     if(args['model'] == "mediapipe"):
         hand_model = get_hand_model(*get_mediapipe_settings(args))
-        frame_processor = FrameProcessor(hand_model)
-        #frame_processor = HandROM_Thumb_Wrapper(hand_model)
+        #frame_processor = FrameProcessor(hand_model)
+        frame_processor = HandROM_Thumb_Wrapper(hand_model)
     else:
         logging.error("Model not supported.")
         
@@ -226,7 +226,6 @@ def main():
     if(check_if_file_is_image(args['filename'])):
         image_main(args, frame_processor)
     else:
-
         try:
             with VideoCap_Info.with_no_info() as cap:
                 cap.setup_capture(args['filename'])

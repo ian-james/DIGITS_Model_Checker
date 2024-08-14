@@ -15,11 +15,13 @@ from datetime import datetime, timezone
 import math
 from typing import List, Tuple, Union, Mapping
 
-from convert_mediapipe_index import get_landmark_name, get_thumb_indices, get_thumb_tip_indices, convert_all_columns_to_friendly_name
-from calculate_joints_and_length import calculate_all_digit_lengths, calculate_angle_between_digit_df
-from calculation_helpers import subtract_lists, calculate_angle, calculate_angles2
+from convert_mediapipe_index import get_landmark_name, get_thumb_indices,  convert_all_columns_to_friendly_name
+from calculation_helpers import subtract_lists, calculate_angle, get_line_points_between_pixels
 
 import cv2
+from PIL import Image, ImageDraw, ImageFont
+
+from scipy.spatial import ConvexHull
 
 # Constant for the estimated hand size in centimeters.
 # ROUGHT ESTIMATE
@@ -266,6 +268,7 @@ class FrameProcessor:
         self.resolution = (1,1,1)
         self.save_as_list = False
         self.save_extra_columns = False
+        self.use_resolution = False
 
     def __enter__(self):
         return self
@@ -281,7 +284,8 @@ class FrameProcessor:
         return draw_landmarks_on_image(frame, detection_results)
 
     def get_df_frame(self, detection_results, frame_id):
-        return hand_landmarks_to_dataframe(detection_results,frame_id,self.save_as_list,self.save_extra_columns,self.resolution)
+        resolution = self.resolution if self.use_resolution else (1,1,1)
+        return hand_landmarks_to_dataframe(detection_results,frame_id,self.save_as_list,self.save_extra_columns,resolution)
 
     def detect(self, image):
         return self.detector.detect(image)
@@ -610,7 +614,20 @@ class HandROM_Thumb_Wrapper(FrameProcessor):
         # Add Last Calcualted Distances
         self.angles = []
         self.diameter = []
+
+        # ROM as area
+        self.is_mask_init = False
         self.mask = None
+        self.mask_points = set()
+        self.mask_new_points =[]
+        self.use_tip_only_movement = False
+        self.show_mask = True
+
+        # Compute the convex hull
+        self.convex_hull = None
+        self.area = 0
+        self.world_scale_estimate = 0.018592443594320586
+        self.font = ImageFont.load_default(20)
 
 
     def get_df_frame(self, detection_results, frame_id):
@@ -626,27 +643,64 @@ class HandROM_Thumb_Wrapper(FrameProcessor):
         base_landmark = get_landmark_pb(detection_results.hand_landmarks[0], thumb_idx[0])
         tip_landmark = get_landmark_pb(detection_results.hand_landmarks[0], thumb_idx[1])
 
-        # add the base and tip to the mask
-        x1, y1, z1 = base_landmark
-        x2, y2, z2 = tip_landmark
 
-        # Calculate the Euclidean distance between the two landmarks
-        distance = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2)
+        self.mask_new_points = []
+        if(self.use_tip_only_movement):
+            self.mask_new_points = [(int(tip_landmark[0]*self.resolution[0]), int(tip_landmark[1]*self.resolution[1]))]
+            
+        else:
+            self.mask_new_points = get_line_points_between_pixels(int(base_landmark[0]*self.resolution[0]), 
+                                                            int(base_landmark[1]*self.resolution[1]), 
+                                                            int(tip_landmark[0]*self.resolution[0]), 
+                                                            int(tip_landmark[1]*self.resolution[1]))
 
 
     def process_frame(self, frame, frame_id):
 
-        if(self.mask == None):            
-            self.mask = np.zeros(frame.shape, dtype=np.uint8)
+        detection_results, image =  super().process_frame(frame, frame_id)    
 
-        detection_results, image =  super().process_frame(frame, frame_id)
-
+        if( not self.is_mask_init):            
+            self.mask = Image.new("L", (self.resolution[0],self.resolution[1]), 0)
+            self.is_mask_init = True
+    
         if detection_results is not None:
             self.calculate_digit_range(detection_results)
+            self.calculate_mask(detection_results)
             nimage = self.draw_thumb_ROM(image,detection_results)
             if( nimage is None):
                 #return detection_results, image.numpy_view()
                 return detection_results, image
+            
+            if(self.show_mask):
+                transparent_image = Image.new("RGBA", (self.resolution[0],self.resolution[1]), (255, 255, 255, 0))
+
+                # Draw the polygon on the mask image
+                draw = ImageDraw.Draw(self.mask)
+                draw.polygon(list(self.mask_new_points), fill=255)
+
+                if(len(self.mask_points) > 0):                    
+                    self.convex_hull = ConvexHull(list(self.mask_points)) 
+                    draw.polygon([tuple(self.convex_hull.points[i]) for i in self.convex_hull.vertices], fill=255)
+                    self.area = self.convex_hull.volume               
+
+                # Loop through each pixel of the mask image and set the transparency
+                # For each x,y in the new current poitns
+                for x,y in self.mask_new_points:
+                    if self.mask.getpixel((x, y)) == 255:  # Check if the pixel is white
+                        transparent_image.putpixel((x, y), (255, 255, 255, 255))  # Set to white with full opacity
+
+                self.mask_points.update(self.mask_new_points)
+
+                nimage = Image.composite(transparent_image, Image.fromarray(nimage), self.mask)
+
+                # Draw the area of the convex hull
+                draw = ImageDraw.Draw(nimage)
+                a  = self.area * self.world_scale_estimate
+                draw.text((10,10), f"Area: {a:.2f} cm^2", fill=(255,255,255), font=self.font)
+                
+
+                return detection_results, np.array(nimage)
+            
             return detection_results, nimage
 
         return detection_results, image

@@ -108,7 +108,10 @@ def main():
 
                 for s in stat_var:
                     for column_name, value in stats_df.loc[s].items():
-                        item_df[s+"_"+column_name] = value                
+                        item_df[s+"_"+column_name] = value    
+
+                # Combine the statistics with the item dataframe
+                
 
                 #item_df.to_csv(f"item_stats_{file_name}_.csv", header=True, sep="\t")
         

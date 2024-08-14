@@ -9,16 +9,14 @@ def setup_arguments():
     ##################### Debugging arguments.
     ap.add_argument("-l", "--log", type=str, default="info", help="Set the logging level. (debug, info, warning, error, critical)")
 
-    #ap.add_argument("-s", "--show_visual", action="store_true", help="Show Windows with visual information.")
-    ap.add_argument("-s", "--show_visual", action="store_false", help="Show Windows with visual information.")
+    ap.add_argument("-s", "--show_visual", action="store_false", help="Show Windows with visual information.")    
   
     # Add an option to load a video file instead of a camera.
     # Default to 0 for the camera.
-    #../videos/tests/quick_flexion_test.mp4
     
     #ap.add_argument("-f", "--filename", type=str, default="datasets/carmin_test/videos/015-L-2-7.mp4", help="Load a video file instead of a camera.") 
     #ap.add_argument("-f", "--filename", type=str, default="datasets/built/mp4/left_90.mp4",help="Load a video file instead of a camera.")  
-    ap.add_argument("-f", "--filename", type=str, default="datasets/built/mp4/left_opp_rom.mp4",help="Load a video file instead of a camera.")  
+    ap.add_argument("-f", "--filename", type=str, default="datasets/circumduction_test/001-L-1-7.mp4",help="Load a video file instead of a camera.")  
     #ap.add_argument("-f", "--filename", type=str, default="datasets/carmin_test/videos/001-L-1-1.mp4", help="Load a video file instead of a camera.")    
     #ap.add_argument("-f", "--filename", type=str, default="/home/jame/Projects/TEST_DIGITS/DIGITS_Model_Checker/media/Videos/Test_Clinical_Videos/CS-L-1-00.00.47.846-00.00.57.171-Opposition.mp4", help="Load a video file instead of a camera.")
     #ap.add_argument("-f", "--filename", type=str, default="/home/jame/Projects/TEST_DIGITS/DIGITS_Model_Checker/media/Videos/Test_Clinical_Videos/CS-L-1-00.00.20.043-00.00.30.065-Closed_Fist.mp4", help="Load a video file instead of a camera.")
@@ -53,11 +51,11 @@ def setup_arguments():
                     help="Run Mediapipe without additional processing.")
 
       # Add an option to set the minimum detection confidence
-    ap.add_argument('-md', '--min_detection_confidence', type=float, default=0.8,
+    ap.add_argument('-md', '--min_detection_confidence', type=float, default=0.5,
                      help="Minimum detection confidence.")
 
     # Add an option to set the minimum tracking confidence
-    ap.add_argument('-mt', '--min_tracking_confidence', type=float, default=0.8,
+    ap.add_argument('-mt', '--min_tracking_confidence', type=float, default=0.5,
                      help="Minimum tracking confidence.")
     
     ap.add_argument("-mp", '--min_presense_confidence', type=float, default=0.5
