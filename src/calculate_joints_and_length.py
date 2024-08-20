@@ -31,9 +31,12 @@ def setup_arguments():
 
     ap.add_argument("-l", "--log", type=str, default="info", help="Set the logging level. (debug, info, warning, error, critical)")
 
-    ap.add_argument("-f", "--filename", type=str, default="./datasets/test_steps/analysis/nh_1_md_0.5_mt_0.5_mp_0.5/csvs/originals/quick_flexion_side_test_mediapipe_nh_1_md_0.5_mt_0.5_mp_0.5.csv", help="Load a CSV file that has been evaluated by mediapipe to produce landmark information.")
+    ap.add_argument("-f", "--filename", type=str, default="analysis/old/nh_1_md_0.8_mt_0.8_mp_0.8/csvs/010-R-1-7_mediapipe_nh_1_md_0.8_mt_0.8_mp_0.8.csv", help="Load a CSV file that has been evaluated by mediapipe to produce landmark information.")
 
     ap.add_argument("-o", "--out_filename", type=str, default="out_data.csv", help="Save the digit lengths and angles to a file")
+
+    # Add an option to save csv files separatly for lengths and angles
+    ap.add_argument("-s", "--save_separately", action="store_false", help="Save the digit lengths and angles to separate files")
 
     return ap
 
@@ -260,9 +263,15 @@ def main_xyz_df(args, df):
         #fangles.to_csv("./output/Digit_ROM.csv", index=False, sep=",")
 
         # #Combine the two dataframes
-        combined_df = pd.concat([fdf,ldf], axis=1)
-        combined_df.to_csv(args['out_filename'], index=False)
-        print(f"Saved ROM to {args['out_filename']}")
+        if( args['save_separately']):
+            #  Split the out_file into directory and filename, then put the length file in the same directory            
+            length_file = os.path.join(os.path.dirname(args['out_filename']), "length_"+os.path.basename(args['out_filename']))            
+            ldf.to_csv(length_file, index=False, sep=",")
+            fdf.to_csv(args['out_filename'], index=False, sep=",")
+        else:
+            combined_df = pd.concat([fdf,ldf], axis=1)
+            combined_df.to_csv(args['out_filename'], index=False)
+            print(f"Saved ROM to {args['out_filename']}")
 
     except Exception as e:
         logging.error(f"Failed to calculate the digit lengths and angles: {e}")
@@ -281,7 +290,6 @@ def main():
     if( not os.path.exists(args['filename'])):
         logging.error(f"File not found: {args['filename']}")
         return
-
 
     # Load the CSV file
     df = pd.read_csv(args['filename'],sep="\t")

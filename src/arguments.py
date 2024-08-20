@@ -9,14 +9,14 @@ def setup_arguments():
     ##################### Debugging arguments.
     ap.add_argument("-l", "--log", type=str, default="info", help="Set the logging level. (debug, info, warning, error, critical)")
 
-    ap.add_argument("-s", "--show_visual", action="store_false", help="Show Windows with visual information.")    
+    ap.add_argument("-s", "--show_visual", action="store_true", help="Show Windows with visual information.")    
   
     # Add an option to load a video file instead of a camera.
     # Default to 0 for the camera.
     
     #ap.add_argument("-f", "--filename", type=str, default="datasets/carmin_test/videos/015-L-2-7.mp4", help="Load a video file instead of a camera.") 
-    #ap.add_argument("-f", "--filename", type=str, default="datasets/built/mp4/left_90.mp4",help="Load a video file instead of a camera.")  
-    ap.add_argument("-f", "--filename", type=str, default="datasets/circumduction_test/001-L-1-7.mp4",help="Load a video file instead of a camera.")  
+    ap.add_argument("-f", "--filename", type=str, default="datasets/built/mp4/my_r_thumb.mp4",help="Load a video file instead of a camera.")  
+    #ap.add_argument("-f", "--filename", type=str, default="datasets/circumduction_test/001-L-1-7.mp4",help="Load a video file instead of a camera.")  
     #ap.add_argument("-f", "--filename", type=str, default="datasets/carmin_test/videos/001-L-1-1.mp4", help="Load a video file instead of a camera.")    
     #ap.add_argument("-f", "--filename", type=str, default="/home/jame/Projects/TEST_DIGITS/DIGITS_Model_Checker/media/Videos/Test_Clinical_Videos/CS-L-1-00.00.47.846-00.00.57.171-Opposition.mp4", help="Load a video file instead of a camera.")
     #ap.add_argument("-f", "--filename", type=str, default="/home/jame/Projects/TEST_DIGITS/DIGITS_Model_Checker/media/Videos/Test_Clinical_Videos/CS-L-1-00.00.20.043-00.00.30.065-Closed_Fist.mp4", help="Load a video file instead of a camera.")

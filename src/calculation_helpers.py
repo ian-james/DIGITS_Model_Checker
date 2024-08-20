@@ -20,13 +20,11 @@ def calculate_angle(v1,v2):
     n = np.linalg.norm(v1d)*np.linalg.norm(v2d)
     
     if(n == 0):
-        return 0
-    
+        return 0    
     s = min(1,max(-1,d/n))
+
     r = math.acos(s)
-    r2 =  r * (180/math.pi)
-    
-    return math.degrees(r )
+    return math.degrees(r)
 
 def calculate_angles2(v1,v2):
     # Convert vectors to Decimal for high precision

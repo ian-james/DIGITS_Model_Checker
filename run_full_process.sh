@@ -20,9 +20,9 @@ usage() {
 }
 
 # Default values
-md_value="0.8" 
-mt_value="0.8"
-mp_value="0.8"
+md_value="0.5" 
+mt_value="0.5"
+mp_value="0.5"
 nh_value="1"
 
 num_files=0
@@ -96,6 +96,18 @@ mkdir -p "$csvs_out"
 
 echo -e "\nStarting Mediapipe on video files."
 ./process_mediapipe.sh -n $num_files -i $videos_directory -o $csvs_out -nh $nh_value -md $md_value -mt $mt_value -mp $mp_value 
+
+if [ $? -eq 0 ]; then
+	echo "Process completed."
+else
+	echo "Process Failed"
+        exit 1
+fi
+
+
+angles_dir=$csvs_out'angles/'
+echo -e "Starting angles calculations in $angles_dir"
+./process_angles.sh -i $csvs_out -o $angles_dir 
 
 if [ $? -eq 0 ]; then
 	echo "Process completed."
