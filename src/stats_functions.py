@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from scipy import stats
+from scipy.stats import sem
 
 
 # Function to compute the statistics
@@ -22,7 +23,7 @@ def compute_statistics(df, exclude_columns=[]):
         df = df.drop(columns=exclude_columns, errors='ignore') 
 
     # Compute the statistics for each column
-    stats_fun = ['max', 'min', 'mean', 'median', 'std', 'var'] #, sem] 
+    stats_fun = ['max', 'min', 'mean', 'median', 'std', 'var', sem] 
     stats_df = df.agg(stats_fun)        
 
     return stats_df

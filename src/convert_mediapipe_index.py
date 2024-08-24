@@ -55,6 +55,33 @@ def get_landmark_name(index):
     }
     return landmarks.get(index, "Unknown Landmark")
 
+# Join names consistent with Sasha's work in thesis.
+def get_joint_names():
+    # Make a dictionary of the joint names
+    # "Thumb CMC","Thumb MCP","Thump IP","Index MCP","Index PIP","Index DIP","Long MCP","Long PIP","Long DIP","Ring MCP","Ring PIP","Ring DIP","Small MCP","Small PIP","Small DIP"
+    joints = {
+        1: "Thumb CMC",
+        2: "Thumb MCP",
+        3: "Thumb IP",
+        4: "Index MCP",
+        5: "Index PIP",
+        6: "Index DIP",
+        7: "Long MCP",
+        8: "Long PIP",
+        9: "Long DIP",
+        10: "Ring MCP",
+        11: "Ring PIP",
+        12: "Ring DIP",
+        13: "Small MCP",
+        14: "Small PIP",
+        15: "Small DIP"
+    }
+    return joints
+
+
+def get_joint_name(index):
+    joints = get_joint_names()
+    return joints.get(index, "Unknown Joint")
 
 def get_all_landmark_names():
     return [get_landmark_name(i) for i in range(21)]

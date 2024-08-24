@@ -5,6 +5,10 @@ import time
 import pandas as pd
 import logging
 
+# A function to clean spaces in a string and replace them with underscores
+def clean_spaces(string):
+    return string.strip().replace(" ", "_")
+
 def copy_csv_to_excel(csv_file, excel_file):
     # Copy the CSV file to an Excel file
     try:
@@ -91,16 +95,16 @@ def check_if_file_is_image(filename):
 
 
 
-def setupCSV2(filename, sept='\t'):
+def setupCSV2(filename, sep='\t',header=0):
     if( os.path.isfile(filename) ):
         try:
             f, fext = os.path.splitext(filename)
             if(fext == ".xlsx"):
                 return pd.read_excel(filename)
             elif( fext == ".csv"):
-                return  pd.read_csv(filename, sep=sept, encoding="ISO-8859-1",keep_default_na=True)
+                return  pd.read_csv(filename, sep=sep, encoding="ISO-8859-1",keep_default_na=True, header=header)
             elif( fext == ".tsv"):
-                return  pd.read_csv(filename, sep=sept, encoding="ISO-8859-1",keep_default_na=True)
+                return  pd.read_csv(filename, sep=sep, encoding="ISO-8859-1",keep_default_na=True)
         except Exception as e:
             print(f"Error reading file CSV2: {e}")
     return None
@@ -116,9 +120,31 @@ def findSep(filename):
         print(f"Unknown separator: {e}")
     return None
 
-def setupAnyCSV(filename):
+def setupAnyCSV(filename, header=0):
     sep = findSep(filename)
     if(sep):
-        return setupCSV2(filename,sep)
+        return setupCSV2(filename,sep,header)
     return None
+
+def is_excel(file_path):
+    """Checks if a file is an Excel file."""
+    file_extension = file_path.split('.')[-1]
+    return file_extension in ['xls', 'xlsx']
+
+def is_csv(file_path):
+    """Checks if a file is a CSV file."""
+    file_extension = file_path.split('.')[-1]
+    return file_extension == 'csv'
+
+def read_file_to_dataframe(file_path):
+    """Reads a file to a pandas DataFrame based on file extension."""
+    file_extension = file_path.split('.')[-1]
+    if file_extension == 'csv':
+        df = pd.read_csv(file_path,sep="\t")
+    elif file_extension in ['xls', 'xlsx']:
+        df = pd.read_excel(file_path)
+    else:
+        raise ValueError(
+            "File format not supported. Only .csv, .xls, and .xlsx files are supported.")
+    return df
 

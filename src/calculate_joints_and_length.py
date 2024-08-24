@@ -258,10 +258,7 @@ def main_xyz_df(args, df):
         #fangles = calculate_angle_between_digit_df(df, Digit.Index.name, None)s
         fangles = calculate_all_finger_angle_df(df, None)
         fdf = pd.DataFrame.from_dict(fangles)
-        fdf.to_csv("./output/Digit_ROM.csv", index=False, sep=",")
-
-        #fangles.to_csv("./output/Digit_ROM.csv", index=False, sep=",")
-
+        
         # #Combine the two dataframes
         if( args['save_separately']):
             #  Split the out_file into directory and filename, then put the length file in the same directory            

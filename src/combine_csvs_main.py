@@ -25,9 +25,9 @@ def get_directory(file_path):
 
 def main():
     parser = argparse.ArgumentParser(description="Create a video from a single image.")    
-    parser.add_argument("-d","--directory", type=str, default="analysis/original/nh_1_md_0.8_mt_0.8_mp_0.8/roms/csvs", help="Path to the input csv.") 
+    parser.add_argument("-d","--directory", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/DIGITS_C_50/csv_angles/", help="Path to the input csv.") 
     parser.add_argument("-o","--out_filename", type=str, default="vs_combine_output.csv", help="Path and filename for the converted video.")
-    parser.add_argument("-s","--stats_directory", type=str, default="analysis/original/nh_1_md_0.8_mt_0.8_mp_0.8/roms/csvs/tests", help="Specific Path for stats files (optional).") 
+    parser.add_argument("-s","--stats_directory", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/DIGITS_C_50/csv_angles/test_stats/", help="Specific Path for stats files (optional).") 
     parser.add_argument("-m","--stats", type=str, default="all", help="Statistics to compute (var, std, mean, max, min)")
      
     # Setup Arguments
@@ -109,11 +109,6 @@ def main():
                 for s in stat_var:
                     for column_name, value in stats_df.loc[s].items():
                         item_df[s+"_"+column_name] = value    
-
-                # Combine the statistics with the item dataframe
-                
-
-                #item_df.to_csv(f"item_stats_{file_name}_.csv", header=True, sep="\t")
         
                 total_df = pd.concat([total_df, item_df], axis=0,ignore_index=True)                   
 
@@ -130,7 +125,6 @@ def main():
         total_df.to_csv(out_file, index=False, header=True, sep="\t")
 
     print(f"Finished writing the statistics to {args['out_filename']}")
-
 
 if __name__ == "__main__":
     main()
