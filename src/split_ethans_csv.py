@@ -71,8 +71,7 @@ def main():
             output_file = clean_spaces(output_file)
             output_path = os.path.join(output_directory, output_file)
             filtered_data.to_csv(output_path, index=False, header=False, sep="\t")
-
-
+            
             total_rows -= filtered_data.shape[0]
 
         # Print a message to indicate that the process is complete
