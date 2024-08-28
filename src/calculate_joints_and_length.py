@@ -13,6 +13,8 @@ from calculation_helpers import calculate_angle, calculate_angle_between_each_di
 
 from convert_mediapipe_index import *
 
+from file_utils import setupAnyCSV
+
 import ast
 def safe_literal_eval(val):
     try:
@@ -235,7 +237,7 @@ def convert_csv_to_landmarks(df):
 def main_xyz_df(args, df):
 
     # Load the CSV file
-    df = pd.read_csv(args['filename'],sep="\t")
+    df = setupAnyCSV(args['filename'])  
     if( df is None):
         logging.error(f"Failed to load file: {args['filename']}")
         return
@@ -262,7 +264,7 @@ def main_xyz_df(args, df):
         # #Combine the two dataframes
         if( args['save_separately']):
             #  Split the out_file into directory and filename, then put the length file in the same directory            
-            length_file = os.path.join(os.path.dirname(args['out_filename']), "length_"+os.path.basename(args['out_filename']))            
+            length_file = os.path.join(os.path.dirname(args['out_filename']), "length", "length_"+os.path.basename(args['out_filename']))            
             ldf.to_csv(length_file, index=False, sep=",")
             fdf.to_csv(args['out_filename'], index=False, sep=",")
         else:
@@ -287,14 +289,10 @@ def main():
     if( not os.path.exists(args['filename'])):
         logging.error(f"File not found: {args['filename']}")
         return
+    
+    os.makedirs( os.path.join(os.path.dirname(args['out_filename']), "length"), exist_ok=True)
 
-    # Load the CSV file
-    df = pd.read_csv(args['filename'],sep="\t")
-    if( df is None):
-        logging.error(f"Failed to load file: {args['filename']}")
-        return
-
-    main_xyz_df(args, df)
+    main_xyz_df(args, None)
 
 
 # ********************************************************************************************************************

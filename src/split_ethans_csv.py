@@ -78,6 +78,8 @@ def main():
 
         if(total_rows == 0):
             print("Data split successfully")
+            print("Total rows remaining: ", total_rows)
+            print("Total files: ", len(unique_values))
         else:
             print(f"Error: {total_rows} rows were not processed, missing rows.")
 

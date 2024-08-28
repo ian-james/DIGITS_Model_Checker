@@ -23,6 +23,8 @@ import pandas as pd
 import numpy as np
 import argparse
 from pathlib import Path
+from scipy import stats
+from scipy.stats import ttest_ind
 
 from file_utils import setupAnyCSV, clean_spaces
 from convert_mediapipe_index import get_joint_names
@@ -102,10 +104,11 @@ def main():
     # args should be file_input and out_filename
     parser = argparse.ArgumentParser(description="Handle all the angle files.")
     parser.add_argument("-f","--file", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/DIGITS_C_49/compare_angles/all_angles_combined.csv", help="Path to the input CSV file.")    
-    parser.add_argument("-o","--out_filename", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/DIGITS_C_49/compare_angles/vs_combine_output.csv", help="Path and filename for the converted video.")
-    parser.add_argument("-d","--directory", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/DIGITS_C_49/stats/", help='Output directory to save the files')
+    parser.add_argument("-o","--out_filename", type=str, default="vs_combine_output.csv", help="Path and filename for the converted video.")
+    parser.add_argument("-d","--directory", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/DIGITS_C_49/compare_angles/test", help='Output directory to save the files')
     parser.add_argument('-i', '--input', type=str, default="filename", help='Default column name to group by')
     parser.add_argument("-m","--mfile", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/DIGITS_C_49/compare_angles/my_all_angles_combined.csv", help="Path to the input CSV file.")
+    parser.add_argument("-b", "--both_name", type=str, default="filename", help="Column name to group by in both files")
 
     # A group of strings can be passed as a list
     parser.add_argument("-c","--column_name", nargs='+', type=str, default="", help='Column names to group together')
@@ -129,6 +132,7 @@ def main():
     DIR_VIEW_POSE_COMPARE = "compare"
     DIR_THIER = "theirs"
     DIR_MINE = "mine"
+    DIR_COMBINED = "combined"
     
     
     stats_fun = [args['stats']]
@@ -150,11 +154,12 @@ def main():
         os.makedirs(out_directory)
 
     os.makedirs(os.path.join(out_directory, DIR_VIEW_POSE_COMPARE),exist_ok=True)
+    os.makedirs(os.path.join(out_directory, DIR_COMBINED),exist_ok=True)
 
     for nd in [DIR_THIER, DIR_MINE]:
         os.makedirs(os.path.join(out_directory, nd),exist_ok=True)
         os.makedirs(os.path.join(out_directory, nd, DIR_VIEW_POSE),exist_ok=True)
-        os.makedirs(os.path.join(out_directory, nd, DIR_VIEW_POSE_ALL),exist_ok=True)  
+        os.makedirs(os.path.join(out_directory, nd, DIR_VIEW_POSE_ALL),exist_ok=True)        
 
     # Try and load the CSV file
     try:
@@ -186,8 +191,8 @@ def main():
         df['filename'] = df['filename'].apply(clean_spaces)
         mdf['filename'] = mdf['filename'].apply(clean_spaces)
 
-        # Then save the files as separate files
-        # Run stats on the files if indicated.
+        # Dataframe to hold all combined.
+        all_combined_df = pd.DataFrame()
 
         # For each column name, group by that column name
         for row_name in group_names:
@@ -197,8 +202,15 @@ def main():
             mdf_rows = mdf[ mdf[header_input].str.contains(row_name, case=False, na=False)]
 
             # If the column name is not found, then skip
-            if( len(df_rows) <= 0 or len(mdf_rows) <= 0):
-                print(f"Row not found: {row_name}")
+            not_in_df = len(df_rows) <= 0
+            not_in_mdf = len(mdf_rows) <= 0
+            if( not_in_df or not_in_mdf):
+                if( not_in_df and not_in_mdf):
+                    print(f"Row not found in either file: {row_name}")
+                elif( not_in_df):
+                    print(f"Row not found in DF: {row_name}")
+                else:
+                    print(f"Row not found in MDF: {row_name}")
                 continue
 
             # If the stats is not empty, then compute the stats
@@ -215,10 +227,10 @@ def main():
                 # remove the filename and ignore columns
                 stats_df = stats_df.drop(columns=ignore_columns, errors='ignore')
                 mstats_df = mstats_df.drop(columns=ignore_columns, errors='ignore')
+
+                # Subtract the two dataframes
                 results = (stats_df - mstats_df).abs()
 
-               
-              
                 # Save the comparison to a new file
                 if( args['keep'] == "all"):
                     results.to_csv( os.path.join(out_directory, DIR_VIEW_POSE_COMPARE,f"{clean_spaces(row_name)}all_compare.csv"), index=False, header=True, sep=',')
@@ -226,6 +238,20 @@ def main():
                     # Check which columns start with the keep value and save them
                     keep_columns = results.filter(like=args['keep'], axis=1)
                     keep_columns.to_csv( os.path.join(out_directory, DIR_VIEW_POSE_COMPARE,f"{clean_spaces(row_name)}{args['keep']}_compare.csv"), index=False, header=True, sep=',')
+
+                
+                # add the filename to the start of the dataframe                
+                # stats_df.insert(0, 'filename', "one")
+                # mstats_df.insert(0, 'filename', "two")
+
+                # Combine the two dataframes so that it creates two rows for each file
+                combined_df = pd.concat([stats_df, mstats_df], axis=0, ignore_index=True)
+                
+                # Save the combined file, to the combined directory with the name of the row
+                combine_file = os.path.join(out_directory, DIR_COMBINED, f"{clean_spaces(row_name)}combined.csv")
+                combined_df.to_csv( combine_file, index=False, header=True, sep=',')
+
+
                 
 
     except FileNotFoundError:
