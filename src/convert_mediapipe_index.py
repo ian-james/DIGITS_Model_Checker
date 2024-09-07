@@ -22,6 +22,13 @@ def default_digit_tip_names():
         "Pinky": ["Pinky Tip", "Pinky MCP"]
     }
 
+
+def default_wrist_to_index_tip_names():
+    return {
+        "Wrist": ["Wrist", "Index Finger Tip"]
+    }
+
+
 def default_coordinate_names():
     return {
         "X": " (X-coordinate)",
@@ -55,6 +62,28 @@ def get_landmark_name(index):
     }
     return landmarks.get(index, "Unknown Landmark")
 
+def get_landmark_xyz_name(index):
+    landmark_name = get_landmark_name(index)    
+    return [f"{landmark_name} ({coordinate}-coordinate)" for coordinate in ["X", "Y", "Z"]]
+
+
+def get_all_landmarks_xyz_names():    
+    all_landmarks = []
+    for i in range(21):
+        all_landmarks += get_landmark_xyz_name(i)
+    return all_landmarks
+    
+def real_world_landmark_names():
+    return real_world_extension_names() + real_world_flexion_names()
+
+def real_world_flexion_names():
+    return ["Index MP joint (flexion)", "Index PIP joint (flexion)", "Index DIP joint (flexion)", "Long MP joint (flexion)", "Long PIP joint (flexion)", "Long DIP joint (flexion)", "Ring MP joint (flexion)", "Ring PIP joint (flexion)", "Ring DIP joint (flexion)", "Little MP joint (flexion)", "Little PIP joint (flexion)", "Little DIP joint (flexion)", "Thumb MP joint (flexion)", "Thumb IP joint (flexion)"]
+
+def real_world_extension_names():
+    return [ "Index MP joint (extension)", "Index PIP joint (extension)", "Index DIP joint (extension)", "Long MP joint (extension)", "Long PIP joint (extension)", "Long DIP joint (extension)", "Ring MP joint (extension)", "Ring PIP joint (extension)", "Ring DIP joint (extension)", "Little MP joint (extension)", "Little PIP joint (extension)", "Little DIP joint (extension)", "Thumb MP joint (extension)", "Thumb IP joint (extension)"]
+
+
+
 # Join names consistent with Sasha's work in thesis.
 def get_joint_names():
     # Make a dictionary of the joint names
@@ -77,6 +106,9 @@ def get_joint_names():
         15: "Small DIP"
     }
     return joints
+
+def get_just_joint_names():
+    return ["CMC","MCP","PIP","DIP","IP"]
 
 
 def get_joint_name(index):

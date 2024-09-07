@@ -33,7 +33,7 @@ def setup_arguments():
 
     ap.add_argument("-l", "--log", type=str, default="info", help="Set the logging level. (debug, info, warning, error, critical)")
 
-    ap.add_argument("-f", "--filename", type=str, default="analysis/old/nh_1_md_0.8_mt_0.8_mp_0.8/csvs/010-R-1-7_mediapipe_nh_1_md_0.8_mt_0.8_mp_0.8.csv", help="Load a CSV file that has been evaluated by mediapipe to produce landmark information.")
+    ap.add_argument("-f", "--filename", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Processed_Videos/analysis/nh_1_md_0.5_mt_0.5_mp_0.5/csvs/001-L-1-1_mediapipe_nh_1_md_0.5_mt_0.5_mp_0.5.csv", help="Load a CSV file that has been evaluated by mediapipe to produce landmark information.")
 
     ap.add_argument("-o", "--out_filename", type=str, default="out_data.csv", help="Save the digit lengths and angles to a file")
 
@@ -58,13 +58,17 @@ def calculate_digit_length(df, digit_tip_name, digit_base_name):
 
 # This function only works if the landmark is listed in a single Column ie [x,y,z]
 # Rather than the X-Coordinate, Y-Coordinate, Z-Coordinate format.
-def calculate_all_digit_lengths(df, digit_names):
+def calculate_all_digit_lengths(df, digit_names, include_wrist=True):
 
     if( df is None):
         return None
 
     if( digit_names is None):
         digit_names = default_digit_tip_names()
+
+    if( include_wrist):
+        wrist = default_wrist_to_index_tip_names()
+        digit_names.update(wrist)
 
     digit_lengths = {}
     for digit, names in digit_names.items():
@@ -176,15 +180,16 @@ def calculate_angle_between_digit_df(df, digit_name):
         name2 = get_landmark_name(ids[i+1])
 
         d = "d_"+name+"_"+name2
-        dnames.append(d)
+        dnames.append(d)        
         ndf[d] = df.apply(lambda row: np.subtract(row[name], row[name2]), axis=1)
 
     # Calculate the angle between each vector
-    angles = []
+    names = list( get_joint_names().values())
     for i in range(0,len(dnames)-1):
-        ndf['ROM_'+dnames[i]+"_"+dnames[i+1]] = ndf.apply(lambda x: calculate_angle(x[dnames[i]], x[dnames[i+1]]), axis=1)
+        ndf[names[i]] = ndf.apply(lambda x: calculate_angle(x[dnames[i]], x[dnames[i+1]]), axis=1)
 
     # Drop all vector columns
+    
     for d in dnames:
         ndf.drop(columns=[d], inplace=True)
 
@@ -253,8 +258,7 @@ def main_xyz_df(args, df):
 
         # Calculate the digit lengths
         digit_lengths = calculate_all_digit_lengths(df, None )
-        ldf = pd.DataFrame.from_dict(digit_lengths)
-        # #ldf.to_csv("./output/Digit_Lengths.csv", index=False, sep=",")
+        ldf = pd.DataFrame.from_dict(digit_lengths)        
 
         # Calculate the angles between each joint
         #fangles = calculate_angle_between_digit_df(df, Digit.Index.name, None)s

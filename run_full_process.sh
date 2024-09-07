@@ -30,7 +30,6 @@ shuffle=false
 
 all_combined_file="all_combined.csv"
 
-
 # Parse command-line options
 # Parse command-line options
 while [[ "$#" -gt 0 ]]; do
@@ -54,7 +53,6 @@ echo $md_value
 echo $mt_value
 echo $mp_value
 echo $nh_value
-echo "HERE"
 
 echo num_files
 echo shuffle

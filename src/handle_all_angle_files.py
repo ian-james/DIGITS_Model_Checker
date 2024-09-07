@@ -29,40 +29,14 @@ from scipy.stats import ttest_ind
 from file_utils import setupAnyCSV, clean_spaces
 from convert_mediapipe_index import get_joint_names
 
+from hand_file_builder import change_filename_from_lab_numbers, build_nvp_group_names, check_if_file_is_in_lab_format
+
 # stats = ['max', 'min', 'mean', 'median', 'std', 'var', sem]
 # LT, RT
 # Palmer, Rad_Obl, Rad_Side, Uln_Obl, Uln_Side,
 # Fist, Ext, IM
 # get_joint_names()
 # LT_UT, LT_UT, RT_UT, LT_MT, RT_MT, LT_MP, RT_MP
-
-def build_filename(nh, view, pose):
-    """Build a filename from the hand, name, view, and pose."""
-    return f"{nh}_{view}_{pose}_"
-
-def get_hand_names():
-    """Return the hand names to group by."""
-    return ['Lt', 'Rt']
-
-def get_view_names():
-    """Return the view names to group by."""
-    return ['Palmar', 'Rad_Obl', 'Rad_Side', 'Uln_Obl', 'Uln_Side']
-
-def get_pose_names():
-    """Return the pose names to group by."""
-    return ['Ext', 'Fist', 'IM']
-
-def build_group_names():
-    """Build the group names from the hand, view, and pose."""
-    hand_names = get_hand_names()
-    view_names = get_view_names()
-    pose_names = get_pose_names()
-    group_names = []
-    for hand in hand_names:
-        for view in view_names:
-            for pose in pose_names:
-                group_names.append(build_filename(hand, view, pose))
-    return group_names
 
 def process_stats(df_rows, stats_fun, ignore_columns,out_directory):
     # the first filename from the row
@@ -103,11 +77,11 @@ def main():
     # Setup Arguments
     # args should be file_input and out_filename
     parser = argparse.ArgumentParser(description="Handle all the angle files.")
-    parser.add_argument("-f","--file", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/DIGITS_C_49/compare_angles/all_angles_combined.csv", help="Path to the input CSV file.")    
-    parser.add_argument("-o","--out_filename", type=str, default="vs_combine_output.csv", help="Path and filename for the converted video.")
-    parser.add_argument("-d","--directory", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/DIGITS_C_49/compare_angles/test", help='Output directory to save the files')
+    parser.add_argument("-f","--file", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Processed_Videos/analysis/nh_1_md_0.5_mt_0.5_mp_0.5/all_angles_combined.csv", help="Path to the input CSV file.")    
+    #parser.add_argument("-o","--out_filename", type=str, default="vs_combine_output.csv", help="Path and filename for the converted video.")
+    parser.add_argument("-d","--directory", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Processed_Videos/analysis/nh_1_md_0.5_mt_0.5_mp_0.5/test", help='Output directory to save the files')
     parser.add_argument('-i', '--input', type=str, default="filename", help='Default column name to group by')
-    parser.add_argument("-m","--mfile", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/DIGITS_C_49/compare_angles/my_all_angles_combined.csv", help="Path to the input CSV file.")
+    parser.add_argument("-m","--mfile", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Processed_Videos/analysis/nh_1_md_0.5_mt_0.5_mp_0.5/formatted_goniometry_measures.csv", help="Path to the input CSV file.")
     parser.add_argument("-b", "--both_name", type=str, default="filename", help="Column name to group by in both files")
 
     # A group of strings can be passed as a list
@@ -122,11 +96,13 @@ def main():
     # Setup Arguments
     args = vars(parser.parse_args())
     file_input = args['file']
-    out_filename = args['out_filename']
+    mfile = args['mfile']
+    
     out_directory = args['directory']
     header_input = args['input']
-    mfile = args['mfile']
+    
 
+    # Setup directory names for consistency
     DIR_VIEW_POSE = "view_pose"
     DIR_VIEW_POSE_ALL = "all"
     DIR_VIEW_POSE_COMPARE = "compare"
@@ -141,6 +117,7 @@ def main():
     # Ignore the columns that are not numeric
     ignore_columns = ['filename', 'nh', 'md', 'mt', 'mp', 'model']
 
+    # Check the files and directories are created
     if( not os.path.exists(file_input) ):
         print(f"File not found: {file_input}")
         return
@@ -163,6 +140,7 @@ def main():
 
     # Try and load the CSV file
     try:
+        # Setup their comparison csv files, nominally, theirs is the first file and mine is the second.
         df = setupAnyCSV(file_input,0)
         mdf = setupAnyCSV(mfile,0)
 
@@ -178,7 +156,7 @@ def main():
 
         # if args['group_names'] is a file then load the names from the file
         if( args['group_names'] == ""):
-            group_names = build_group_names()
+            group_names =  build_nvp_group_names()
         elif( os.path.exists(args['group_names']) ):
             with open(args['group_names'], 'r') as f:
                 group_names = f.readlines()
@@ -190,6 +168,13 @@ def main():
         # Clean up the spaces in the filename columns
         df['filename'] = df['filename'].apply(clean_spaces)
         mdf['filename'] = mdf['filename'].apply(clean_spaces)
+
+        # Check if the first element of the df column has the correct file format.
+        if( not check_if_file_is_in_lab_format(df['filename'].iloc[0]) ):
+            df['filename'] = df['filename'].apply(change_filename_from_lab_numbers)
+
+        if( not check_if_file_is_in_lab_format(mdf['filename'].iloc[0]) ):
+            mdf['filename'] = mdf['filename'].apply(change_filename_from_lab_numbers)
 
         # Dataframe to hold all combined.
         all_combined_df = pd.DataFrame()

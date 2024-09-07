@@ -25,9 +25,9 @@ def get_directory(file_path):
 
 def main():
     parser = argparse.ArgumentParser(description="Create a video from a single image.")    
-    parser.add_argument("-d","--directory", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/DIGITS_C_50/csv_angles/", help="Path to the input csv.") 
+    parser.add_argument("-d","--directory", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Processed_Videos/analysis/nh_1_md_0.5_mt_0.5_mp_0.5/csvs/", help="Path to the input csv.") 
     parser.add_argument("-o","--out_filename", type=str, default="vs_combine_output.csv", help="Path and filename for the converted video.")
-    parser.add_argument("-s","--stats_directory", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/DIGITS_C_50/csv_angles/test_stats/", help="Specific Path for stats files (optional).") 
+    parser.add_argument("-s","--stats_directory", type=str, default="", help="Specific Path for stats files (optional).") 
     parser.add_argument("-m","--stats", type=str, default="all", help="Statistics to compute (var, std, mean, max, min)")
      
     # Setup Arguments
@@ -52,7 +52,7 @@ def main():
     sdirectory  = args['stats_directory']
    
     if( sdirectory == ""):
-        sdirectory = odirectory
+        sdirectory = os.path.join(odirectory,"test_stats")
 
     if( not os.path.exists(sdirectory) ):
         os.makedirs(sdirectory)
@@ -121,7 +121,7 @@ def main():
         print("No data to save.")
     else:
         # Save the file to the output directory
-        out_file = os.path.join(odirectory, args['out_filename'])
+        out_file = os.path.join(Path(odirectory), args['out_filename'])
         total_df.to_csv(out_file, index=False, header=True, sep="\t")
 
     print(f"Finished writing the statistics to {args['out_filename']}")
