@@ -5,6 +5,7 @@ import argparse
 import logging
 import math
 from log import set_log_level
+from pathlib import Path
 import pandas as pd
 import numpy as np
 
@@ -35,7 +36,7 @@ def setup_arguments():
 
     ap.add_argument("-f", "--filename", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Processed_Videos/analysis/nh_1_md_0.5_mt_0.5_mp_0.5/csvs/001-L-1-1_mediapipe_nh_1_md_0.5_mt_0.5_mp_0.5.csv", help="Load a CSV file that has been evaluated by mediapipe to produce landmark information.")
 
-    ap.add_argument("-o", "--out_filename", type=str, default="out_data.csv", help="Save the digit lengths and angles to a file")
+    ap.add_argument("-o", "--out_filename", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Processed_Videos/analysis/nh_1_md_0.5_mt_0.5_mp_0.5/angles/001-L-1-1_mediapipe_nh_1_md_0.5_mt_0.5_mp_0.5.csv", help="Save the digit lengths and angles to a file")
 
     # Add an option to save csv files separatly for lengths and angles
     ap.add_argument("-s", "--save_separately", action="store_false", help="Save the digit lengths and angles to separate files")
@@ -175,18 +176,19 @@ def calculate_angle_between_digit_df(df, digit_name):
     # Make all the vectors
     dnames = []
     ndf = pd.DataFrame()
-    for i in range(0,len(ids)-1):        
-        name = get_landmark_name(ids[i])
-        name2 = get_landmark_name(ids[i+1])
+    for i in range(1,len(ids)):        
+        name = get_landmark_name(ids[i-1])
+        name2 = get_landmark_name(ids[i])
 
         d = "d_"+name+"_"+name2
         dnames.append(d)        
         ndf[d] = df.apply(lambda row: np.subtract(row[name], row[name2]), axis=1)
 
     # Calculate the angle between each vector
-    names = list( get_joint_names().values())
-    for i in range(0,len(dnames)-1):
-        ndf[names[i]] = ndf.apply(lambda x: calculate_angle(x[dnames[i]], x[dnames[i+1]]), axis=1)
+    
+    for i in range(1,len(dnames)):        
+        name = get_landmark_name(ids[i])        
+        ndf[name] = ndf.apply(lambda x: calculate_angle(x[dnames[i-1]], x[dnames[i]]), axis=1)
 
     # Drop all vector columns
     
@@ -209,7 +211,7 @@ def calculate_all_finger_angle_df(df, digit_names):
         if(digit == Digit.Wrist):
             continue
         ddf = calculate_angle_between_digit_df(df, digit.name)
-        ddf.to_csv(f"./output/{digit.name}_ROM.csv", index=False, sep=",")
+        #ddf.to_csv(f"./output/{digit.name}_ROM.csv", index=False, sep=",")
 
         rom_df = pd.concat([rom_df,ddf], axis=1)
 
@@ -268,7 +270,7 @@ def main_xyz_df(args, df):
         # #Combine the two dataframes
         if( args['save_separately']):
             #  Split the out_file into directory and filename, then put the length file in the same directory            
-            length_file = os.path.join(os.path.dirname(args['out_filename']), "length", "length_"+os.path.basename(args['out_filename']))            
+            length_file = os.path.join(get_length_path(args['out_filename']), "length_"+os.path.basename(args['out_filename']))            
             ldf.to_csv(length_file, index=False, sep=",")
             fdf.to_csv(args['out_filename'], index=False, sep=",")
         else:
@@ -279,6 +281,10 @@ def main_xyz_df(args, df):
     except Exception as e:
         logging.error(f"Failed to calculate the digit lengths and angles: {e}")
         return
+
+def get_length_path(out_filename):
+    return os.path.join(Path(os.path.dirname(out_filename)).parent, "length")
+    
 
 def main():
     # Setup Arguments
@@ -294,7 +300,11 @@ def main():
         logging.error(f"File not found: {args['filename']}")
         return
     
-    os.makedirs( os.path.join(os.path.dirname(args['out_filename']), "length"), exist_ok=True)
+    angle_directory =  os.path.join(os.path.dirname(args['out_filename']))
+    os.makedirs(angle_directory, exist_ok=True)
+
+    lenth_directory = get_length_path(args['out_filename'])
+    os.makedirs(lenth_directory, exist_ok=True)
 
     main_xyz_df(args, None)
 

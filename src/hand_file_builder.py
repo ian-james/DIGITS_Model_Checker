@@ -173,8 +173,8 @@ def change_filename_from_lab_numbers(filename):
         view = views[int(view)-1]
         pose = poses[int(pose)-1]    
 
-        # Return the new filename
-        return f"DIGITS_{build_patient_filename(patient_number, hand_name, view, pose)}.csv"    
+        # Return the new filename, Drop any leading zeroes
+        return f"DIGITS_{build_patient_filename(str(int(patient_number)), hand_name, view, pose)}.csv"    
     # Array exception
     except IndexError:
         print(f"Filename {filename} not formatted correctly.")

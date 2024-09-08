@@ -35,27 +35,27 @@ def main():
     directory = args['directory']
     if( directory == ""):
         print("Please provide a directory path.")
-        return
-    
+        return    
 
     if( not os.path.exists(directory) ):
         print(f"Directory not found: {directory}")
-        return
-
+        return    
+  
     # Create a dataframe to store the statistics
     settings = ['filename', 'nh', 'md','mt','mp']
     exclude_columns = ['filename','time','timestamp','handedness']
     total_df = pd.DataFrame()
 
     # Using pathlib get the parent directory of this directory.
-    odirectory = Path(directory).parent
-    sdirectory  = args['stats_directory']
-   
+    
+    sdirectory  = args['stats_directory']   
     if( sdirectory == ""):
         sdirectory = os.path.join(odirectory,"test_stats")
-
+    
     if( not os.path.exists(sdirectory) ):
-        os.makedirs(sdirectory)
+        os.makedirs(sdirectory, exist_ok=True)
+
+    odirectory = Path(directory).parent
      
     print(f"Input directory: {directory}")
     print(f"Output directory: {odirectory}")
@@ -121,7 +121,7 @@ def main():
         print("No data to save.")
     else:
         # Save the file to the output directory
-        out_file = os.path.join(Path(odirectory), args['out_filename'])
+        out_file = os.path.join(odirectory, args['out_filename'])
         total_df.to_csv(out_file, index=False, header=True, sep="\t")
 
     print(f"Finished writing the statistics to {args['out_filename']}")
