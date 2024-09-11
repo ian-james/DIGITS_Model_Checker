@@ -121,6 +121,10 @@ def get_line_points_between_pixels(x1, y1, x2, y2):
             y1 += sy
     return points
 
+def natural_sort_key(filename):
+    """Sort the filenames in a natural order (i.e., 1, 2, 3, ..., 10, 11, ...)."""
+    print(filename)
+    return [int(text) if text.isdigit() else text.lower() for text in re.split('(\d+)', filename)]
 
 if __name__ == "__main__":
     # Test the functions

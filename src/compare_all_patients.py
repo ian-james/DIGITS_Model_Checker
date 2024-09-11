@@ -22,15 +22,6 @@ from hand_file_builder import *
 # LT_UT, LT_UT, RT_UT, LT_MT, RT_MT, LT_MP, RT_MP
 
 
-def get_all_keywords():
-    """Return all the keywords for the filenames."""
-    # Split get_view_names because of _ in the names
-    clean_views = [view.split('_') for view in get_view_names()]
-
-    # Flatten the list
-    clean_views = [item for sublist in clean_views for item in sublist]
-    return get_hand_names() + clean_views + get_pose_names()
-
 def keep_only_keywords( filename, keywords):
     # Remove any words not contained in the keywords list
     return '_'.join([word for word in filename.split('_') if word in keywords])

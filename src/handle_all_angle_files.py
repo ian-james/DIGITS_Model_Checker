@@ -17,11 +17,16 @@
 # Go through the filenames and group by the action the user is taking EXT, FIST, IM (  more poses for our data )
 # Compare them at pose level and save them as separate files
 
+# TODO Goniometery files don't have the same column name order or column names 
+# They follow mostly the same format but Index,Long, Ring, Little, Thumb is the order and the pose(extension,flexion)
+# In Handle all angle files, we need to account for the slight differences in the filenames and convert to our standard names
+
 #Step 1
 import os
 import pandas as pd
 import numpy as np
 import argparse
+import re
 from pathlib import Path
 from scipy import stats
 from scipy.stats import ttest_ind
@@ -29,7 +34,9 @@ from scipy.stats import ttest_ind
 from file_utils import setupAnyCSV, clean_spaces
 from convert_mediapipe_index import get_joint_names
 
-from hand_file_builder import change_filename_from_lab_numbers, build_nvp_group_names, check_if_file_is_in_lab_format
+from pprint import pprint
+
+from hand_file_builder import *
 
 # stats = ['max', 'min', 'mean', 'median', 'std', 'var', sem]
 # LT, RT
@@ -42,8 +49,12 @@ def process_stats(df_rows, stats_fun, ignore_columns,out_directory):
     # the first filename from the row
     row_name = df_rows['filename'].iloc[0]
 
-    # strip off the last 6 characters to get the filename ( ex _1.csv )
-    row_name = row_name[:-6]
+    # Strip the extension from the filename
+    row_name = Path(row_name).stem
+
+    # If the file ends with a number, then remove the number.
+    # It indicates a replication from Sasha's data.
+    row_name = re.sub(r'_\d+$', '', row_name)
 
     # Compute the stats for each column except the ignore columns
     rows = df_rows.drop(columns=ignore_columns, errors='ignore')
@@ -69,19 +80,28 @@ def process_individual_files(stats_df, row_name, column_names, out_directory):
             continue
 
         # Save the file as a separate file
-        sfile = f"{clean_spaces(row_name)}{clean_spaces(col_name)}.csv"
+        sfile = f"{clean_spaces(row_name)}_{clean_spaces(col_name)}.csv"
         df_cols.to_csv(  os.path.join(out_directory,sfile) , index=False, header=True, sep=',')
+
+
+def get_longest_shared_filename(filename1, filename2):
+   
+    all_keywords = get_all_keywords()
+    patient_id = get_patient_id()
+
+    # TODO IF NOT WORKING`
+  
 
 def main():
 
     # Setup Arguments
     # args should be file_input and out_filename
     parser = argparse.ArgumentParser(description="Handle all the angle files.")
-    parser.add_argument("-f","--file", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Processed_Videos/analysis/nh_1_md_0.5_mt_0.5_mp_0.5/all_angles_combined.csv", help="Path to the input CSV file.")    
+    parser.add_argument("-f","--file", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Processed_Videos/analysis/nh_1_md_0.5_mt_0.5_mp_0.5/formatted_goniometry_measures.csv", help="Path to the input CSV file.")    
     #parser.add_argument("-o","--out_filename", type=str, default="vs_combine_output.csv", help="Path and filename for the converted video.")
     parser.add_argument("-d","--directory", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Processed_Videos/analysis/nh_1_md_0.5_mt_0.5_mp_0.5/test", help='Output directory to save the files')
     parser.add_argument('-i', '--input', type=str, default="filename", help='Default column name to group by')
-    parser.add_argument("-m","--mfile", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Processed_Videos/analysis/nh_1_md_0.5_mt_0.5_mp_0.5/formatted_goniometry_measures.csv", help="Path to the input CSV file.")
+    parser.add_argument("-m","--mfile", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Processed_Videos/analysis/nh_1_md_0.5_mt_0.5_mp_0.5/all_angles_combined.csv", help="Path to the input CSV file.")
     parser.add_argument("-b", "--both_name", type=str, default="filename", help="Column name to group by in both files")
 
     # A group of strings can be passed as a list
@@ -100,7 +120,6 @@ def main():
     
     out_directory = args['directory']
     header_input = args['input']
-    
 
     # Setup directory names for consistency
     DIR_VIEW_POSE = "view_pose"
@@ -176,6 +195,10 @@ def main():
         if( not check_if_file_is_in_lab_format(mdf['filename'].iloc[0]) ):
             mdf['filename'] = mdf['filename'].apply(change_filename_from_lab_numbers)
 
+        # Sort dataframes by filename
+        df = df.sort_values(by=['filename'])
+        mdf = mdf.sort_values(by=['filename'])
+
         # Dataframe to hold all combined.
         all_combined_df = pd.DataFrame()
 
@@ -185,6 +208,12 @@ def main():
             # Get all the rows that contain that name
             df_rows = df[ df[header_input].str.contains(row_name, case=False, na=False)]
             mdf_rows = mdf[ mdf[header_input].str.contains(row_name, case=False, na=False)]
+
+            pprint(df_rows['filename'])
+
+            print(">>>>>>>>>>>>>>>>>>>>>>>>")
+
+            pprint(df_rows['filename'])
 
             # If the column name is not found, then skip
             not_in_df = len(df_rows) <= 0
@@ -208,22 +237,27 @@ def main():
                 process_individual_files(stats_df, row_name, column_names, os.path.join(out_directory,DIR_THIER,DIR_VIEW_POSE_ALL))
                 process_individual_files(mstats_df, row_name, column_names, os.path.join(out_directory,DIR_MINE,DIR_VIEW_POSE_ALL))
 
+                # Concat the two dataframe and save them in the output directory
+                combined_stat_df = pd.concat([stats_df, mstats_df], axis=0)
+                combined_stat_df.to_csv( os.path.join(out_directory,  f"{row_name}_concated_stats.csv"), index=False, header=True, sep=',')
+
                 # Subtract all columns that have matching column names, excluding the filename or ignore columns
                 # remove the filename and ignore columns
                 stats_df = stats_df.drop(columns=ignore_columns, errors='ignore')
-                mstats_df = mstats_df.drop(columns=ignore_columns, errors='ignore')
+                mstats_df = mstats_df.drop(columns=ignore_columns, errors='ignore')              
 
                 # Subtract the two dataframes
                 results = (stats_df - mstats_df).abs()
 
                 # Save the comparison to a new file
                 if( args['keep'] == "all"):
-                    results.to_csv( os.path.join(out_directory, DIR_VIEW_POSE_COMPARE,f"{clean_spaces(row_name)}all_compare.csv"), index=False, header=True, sep=',')
+                    results_file = os.path.join(out_directory, DIR_VIEW_POSE_COMPARE,f"{clean_spaces(row_name)}_all_compare.csv")
+                    results.to_csv( results_file , index=False, header=True, sep=',')
                 else:
                     # Check which columns start with the keep value and save them
                     keep_columns = results.filter(like=args['keep'], axis=1)
-                    keep_columns.to_csv( os.path.join(out_directory, DIR_VIEW_POSE_COMPARE,f"{clean_spaces(row_name)}{args['keep']}_compare.csv"), index=False, header=True, sep=',')
-
+                    keep_file = os.path.join(out_directory, DIR_VIEW_POSE_COMPARE,f"{clean_spaces(row_name)}_{args['keep']}_compare.csv")
+                    keep_columns.to_csv(keep_file, index=False, header=True, sep=',')
                 
                 # add the filename to the start of the dataframe                
                 # stats_df.insert(0, 'filename', "one")
@@ -233,7 +267,7 @@ def main():
                 combined_df = pd.concat([stats_df, mstats_df], axis=0, ignore_index=True)
                 
                 # Save the combined file, to the combined directory with the name of the row
-                combine_file = os.path.join(out_directory, DIR_COMBINED, f"{clean_spaces(row_name)}combined.csv")
+                combine_file = os.path.join(out_directory, DIR_COMBINED, f"{clean_spaces(row_name)}_combined.csv")
                 combined_df.to_csv( combine_file, index=False, header=True, sep=',')
 
 

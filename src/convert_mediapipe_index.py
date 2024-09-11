@@ -3,7 +3,7 @@ import logging
 from enum import Enum, auto
 from pprint import pprint
 
-
+import re
 class Digit(Enum):
     Wrist = auto()
     Thumb = auto()
@@ -66,7 +66,6 @@ def get_landmark_xyz_name(index):
     landmark_name = get_landmark_name(index)    
     return [f"{landmark_name} ({coordinate}-coordinate)" for coordinate in ["X", "Y", "Z"]]
 
-
 def get_all_landmarks_xyz_names():    
     all_landmarks = []
     for i in range(21):
@@ -82,7 +81,62 @@ def real_world_flexion_names():
 def real_world_extension_names():
     return [ "Index MP joint (extension)", "Index PIP joint (extension)", "Index DIP joint (extension)", "Long MP joint (extension)", "Long PIP joint (extension)", "Long DIP joint (extension)", "Ring MP joint (extension)", "Ring PIP joint (extension)", "Ring DIP joint (extension)", "Little MP joint (extension)", "Little PIP joint (extension)", "Little DIP joint (extension)", "Thumb MP joint (extension)", "Thumb IP joint (extension)"]
 
+def real_world_finger_order():
+    return ["Index", "Long", "Ring", "Little", "Thumb"]
 
+def mediapipe_finger_order():
+    return ["Thumb", "Index", "Middle", "Ring", "Pinky"]
+
+def replace_str(s, old, new):
+    t = s.replace(old, new)
+    return t
+
+def convert_real_finger_name_to_mediapipe_name_within_string(real_name):
+    # Find the finger name in the string
+    for finger in real_world_finger_order():
+        if finger in real_name:
+            return replace_str(real_name,finger, convert_real_world_finger_name_to_sasha_name(finger))
+
+    # Replace the real name with the mediapipe name
+
+def convert_real_world_finger_name_to_mediapipe_name(real_world_name):
+    c = {
+        "Index": "Index",
+        "Long": "Middle",
+        "Ring": "Ring",
+        "Little": "Pinky",
+        "Thumb": "Thumb"
+    }
+    return c.get(real_world_name, "Unknown Finger")
+
+def mediapipe_index_order_in_real_world():
+    return [1, 2, 3, 4, 0]
+    
+def convert_real_world_finger_name_to_mediapipe_index(real_world_name):
+    creal = convert_real_world_finger_name_to_mediapipe_name(real_world_name)
+    # Safely find the index of the finger in the mediapipe order
+    return mediapipe_finger_order().index(creal)
+
+
+def convert_real_world_to_mediapipe_index(real_world_name):
+
+    # parts = real_world_name.split(" ")
+    # if len(parts) == 4:
+    #     finger, joint, _,  flexion  = parts
+        
+    #     finger_joint_idx = get_joint_index(f"{finger} {joint}") 
+
+    pass
+
+def convert_real_world_finger_name_to_sasha_name(real_world_name):
+    c = {
+        "Index": "Index",
+        "Long": "Long",
+        "Ring": "Ring",
+        "Little": "Small",
+        "Thumb": "Thumb"
+    }
+    return c.get(real_world_name, "Unknown Finger")
 
 # Join names consistent with Sasha's work in thesis.
 def get_joint_names():
@@ -107,9 +161,49 @@ def get_joint_names():
     }
     return joints
 
+
+def reverse_joint_names():
+    return {v: k for k, v in get_joint_names().items()}
+
+def get_joint_index(joint_name):
+    joints = reverse_joint_names()
+    return joints.get(joint_name, -1)
+
 def get_just_joint_names():
     return ["CMC","MCP","PIP","DIP","IP"]
 
+
+def real_world_finger_joint_order():
+    return ["MP", "PIP", "DIP"]
+
+def real_world_thumb_joint_order():
+    return ["MP", "IP"] #CMC is missing
+
+def get_real_world_joint_to_mediapipe_mapping():
+    return {
+        "CMC": "CMC",
+        "MP": "MCP",
+        "MCP:": "MCP",
+        "PIP": "PIP",
+        "DIP": "DIP",
+        "IP": "IP"
+    }
+
+def convert_real_world_joint_name_to_mediapipe_name(joint_name):
+    c = get_real_world_joint_to_mediapipe_mapping()
+    return c.get(joint_name, "Unknown Joint")
+
+def convert_real_joint_name_to_mediapipe_name_within_string(real_name):
+    # Find the finger name in the string
+    keywords = get_real_world_joint_to_mediapipe_mapping().keys()
+
+    pattern = r'\b(' + '|'.join(re.escape(word) for word in keywords) + r')\b'
+
+    # Find all matches
+    matches = re.findall(pattern, real_name)
+    
+    for joint in matches:
+        return real_name.replace(joint, convert_real_world_joint_name_to_mediapipe_name(joint))
 
 def get_joint_name(index):
     joints = get_joint_names()
@@ -173,7 +267,6 @@ def get_thumb_base_index():
 
 def get_thumb_tip_indices():
     return [4]
-
 
 def get_wrist_index():
     return [0]

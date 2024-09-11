@@ -1,4 +1,5 @@
 import os
+import re
 import pandas as pd
 import numpy as np
 
@@ -49,6 +50,15 @@ def get_pose_names(include_im=True):
         a.append('IM')
     return a
 
+def is_extension_file(pose):
+    return 'Ext' in pose or 'extension' in pose.lower()
+
+def is_flexion_file(pose):
+    return 'Fist' in pose or 'flexion' in pose.lower()
+
+def is_intrinsic_minus_file(pose):
+    return 'IM' in pose or 'intrinsic minus' in pose.lower()
+
 def get_pose_full_names():
     """Return the pose names to group by."""
     return ['Extension', 'Flexion', 'Intrinsic Minus']
@@ -63,6 +73,8 @@ def build_vp_group_names(include_im=True):
         for pose in pose_names:
             group_names.append(build_vp_filename(view, pose))
     return group_names
+
+#TODO: All views or some
 
 def build_nvp_group_names(include_im=True): 
     """Build the group names from the hand, view, and pose."""
@@ -106,6 +118,10 @@ def keep_only_keywords( filename, keywords):
     # Remove any words not contained in the keywords list
     return '_'.join([word for word in filename.split('_') if word in keywords])
 
+def get_patient_id(text):
+    # Using regex get the patient id, the first number in the string
+    return re.findall(r'\d+', text)[0]
+
 def get_fingers():
     """Return the finger names to group by."""
     result = []
@@ -114,9 +130,7 @@ def get_fingers():
         joint = joint.split(' ')
         # Add the first word to the result
         result.append(joint[0])
-    return list(set(result))
-
-
+    return list(set(result))    
 
 def get_keywords_from_filename(filename, keywords):
     for keyword in keywords:
