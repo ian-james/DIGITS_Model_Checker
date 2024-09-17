@@ -41,7 +41,8 @@ def get_our_study_view_names():
    return ['Palmar', 'Rad_Obl', 'Uln_Obl' ]
 
 def get_our_study_pose_names():
-    return ['Ext', 'Fist',"IM","Abduction","Opposition","Flex","Circumduction"]
+    #return ["Ext", "Fist", "IM","Abduction","Opposition","Flex","Circumduction"]
+    return ["Ext", "Fist", "IM","Ab","Opp","Flex","Circ"]
 
 def get_pose_names(include_im=True):
     """Return the pose names to group by."""
@@ -208,8 +209,29 @@ def check_if_file_is_in_lab_format(filename, check_hand=True):
     
 
 
+def check_if_filename_starts_with_stat(filename):
+    """Check if the filename starts with a stat."""
+    return filename.split('_')[0] in ['max', 'min', 'mean', 'median', 'std', 'var', 'sem']
+
+def get_stat_from_filename(filename):
+    """Get the stat from the filename."""
+    return filename.split('_')[0]
+
+def remove_stat_prefix_from_filename(filename):
+    """Remove the stat from the filename."""
+    if( check_if_filename_starts_with_stat(filename) ):
+        return '_'.join(filename.split('_')[1:])
+    return filename
     
 if __name__ == "__main__":
+
+    print(check_if_filename_starts_with_stat("max_Lt_Palmar_Ext.csv"))
+    print(check_if_filename_starts_with_stat("mean_Lt_Palmar_Ext.csv"))
+    print(remove_stat_prefix_from_filename("std_tester.csv"))
+    print(remove_stat_prefix_from_filename("var_t_e_ster.csv"))
+    print(remove_stat_prefix_from_filename("bad_tester.csv"))
+    print(remove_stat_prefix_from_filename("one_two_three.csv"))
+
     print( change_filename_from_lab_numbers("015-L-2-1_mediapipe_nh_1_md_0.5_mt_0.5_mp_0.5_model_mediapipe.csv") )
     print( change_filename_from_lab_numbers("015-L-2-21_mediapipe_nh_1_md_0.5_mt_0.5_mp_0.5_model_mediapipe.csv") )
 

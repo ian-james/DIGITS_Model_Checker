@@ -1,6 +1,7 @@
 import math
 import numpy as np
 import decimal
+import re
 
 def calc_digit_length(p1, p2):
     """

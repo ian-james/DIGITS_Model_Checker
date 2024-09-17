@@ -29,8 +29,7 @@ def group_by_view(df):
 
     # Reset index to get a clean DataFrame
     pivoted_df.reset_index(inplace=True)
-    return pivoted_df
-   
+    return pivoted_df   
 
 def main():
     parser = argparse.ArgumentParser(description="Create a video from a single image.")    

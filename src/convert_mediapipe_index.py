@@ -97,7 +97,7 @@ def convert_real_finger_name_to_mediapipe_name_within_string(real_name):
         if finger in real_name:
             return replace_str(real_name,finger, convert_real_world_finger_name_to_sasha_name(finger))
 
-    # Replace the real name with the mediapipe name
+    return real_name
 
 def convert_real_world_finger_name_to_mediapipe_name(real_world_name):
     c = {
@@ -161,6 +161,29 @@ def get_joint_names():
     }
     return joints
 
+def get_digit_joint_names():
+    return {
+        Digit.Thumb.name: ["Thumb CMC", "Thumb MCP", "Thumb IP"],
+        Digit.Index.name: ["Index MCP", "Index PIP", "Index DIP"],
+        Digit.Middle.name: ["Long MCP", "Long PIP", "Long DIP"],
+        Digit.Ring.name: ["Ring MCP", "Ring PIP", "Ring DIP"],
+        Digit.Pinky.name: ["Small MCP", "Small PIP", "Small DIP"]
+    }
+
+def get_digit_joint_indices():
+    return {
+        Digit.Thumb.name: [1, 2, 3],
+        Digit.Index.name: [4, 5, 6],
+        Digit.Middle.name: [7, 8, 9],
+        Digit.Ring.name: [10, 11, 12],
+        Digit.Pinky.name: [13, 14, 15]
+    }
+
+def get_digit_joint_names_from_digit(digit):
+    return get_digit_joint_names().get(digit, [])
+
+def get_digit_joint_index_from_digit(digit):
+    return get_digit_joint_indices().get(digit, [])
 
 def reverse_joint_names():
     return {v: k for k, v in get_joint_names().items()}

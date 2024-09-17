@@ -1,0 +1,32 @@
+#Sample Size Calculation t-test (alpha=0.05 and 80% )
+ICC = Intraclass Correlation Coefficients of AR-based measurements MCP, PIP, DIPD for each finger (not thumb)
+No standard ICC
+
+under 0.40 considered “poor” reliability, an ICC of 0.4 to 0.59 considered “fair” reliability, an ICC of 0.60 to 0.74 considered “good” reliability, and an ICC of 0.75 to 1.00 considered “excellent” reliability.
+
+SEM = square root of MSE term from the two-way ANOVA
+MDC = 1.64 * SEM X sqrt_root(2)
+
+Concurrent Validity Analays average of the five AR-Based measuremets to the same joint in-person ROM
+Each joint and each camera view
+
+
+ICC(95% confidence intervals)
+For Flexion and Extension positions
+
+Each Finger - Each Joint - Each View
+
+Meetings with Sasha
+Intrinsic Minus - Position
+
+Run Mediapipe over videos to find maximum postions 
+Thumb needed to be visible
+
+700 datapoints per video
+
+/*************************************************************************************************************************/
+
+Between Mine and Her
+
+Mean ABsolute difference of the angles =  me-hers
+Max/Min...etc

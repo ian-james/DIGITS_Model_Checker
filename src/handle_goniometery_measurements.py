@@ -18,6 +18,10 @@ from hand_file_builder import *
 # Check if the column name matches any of the keywords
 def check_keywords(column_name, keywords):
     return any(keyword.lower() in column_name.lower() for keyword in keywords)
+    # v = (keyword.lower() in column_name.lower() for keyword in keywords)
+    # if( not any(v)):
+    #     print(f"Column name: {column_name}")
+    # return any(v)
 
 def separate_row_by_pose(row, filename):
     pdf = row
@@ -33,24 +37,7 @@ def separate_row_by_pose(row, filename):
         # Select only the columns that are intrinsic minus
         pdf = row.filter(regex='intrinsic minus|intrinsic_minus|IM', axis=0)
     
-    return pdf
-
-# def process_goniometry_measurement_file(input_file, has_left_file, is_left=False):
-
-#     try:
-#         df = setupAnyCSV(input_file)
-
-#        # Get the first column name
-#         first_column = df.iloc[:, 0]  # Keeps the first column
-
-#         df_ext = df.apply(lambda row: separate_row_by_pose(row, "extension"), axis=1)
-#         cdf_ext = df_ext.copy()        
-
-#         df_flex = df.apply(lambda row: separate_row_by_pose(row, "flexion"), axis=1)
-#         cdf_flex = df_flex.copy()
-
-        
-
+    return pdf   
 
 def process_goniometry_measurement_file(input_file, has_left_file, is_left=False):
     try:
@@ -69,7 +56,7 @@ def process_goniometry_measurement_file(input_file, has_left_file, is_left=False
 
         # After the fisrt column, the data is the real-world measurements
         # Combining the first column back with the filtered dataframe
-        df = pd.concat([first_column, filtered_df.iloc[:, 1:]], axis=1)
+        df = pd.concat([first_column, filtered_df.iloc[:, 0:]], axis=1)
 
         # Remove any patients that have no data
         df = df.dropna(subset=column_names[0])
@@ -88,11 +75,11 @@ def process_goniometry_measurement_file(input_file, has_left_file, is_left=False
         # For each row in the table we are going to replace
         # Take the first column combine it with the hand_view_pose_group name
         # Then save the file to the output directory
-
         print(df.columns)
         second_half_columns = df.columns[1:].values.tolist()
         ndf = pd.DataFrame(columns=['id','filename', 'nh', 'md', 'mt', 'mp', 'model'])
 
+    
         for index, row in df.iterrows():
             # Get the first column value
             first_column_value = row.iloc[0]
@@ -104,7 +91,7 @@ def process_goniometry_measurement_file(input_file, has_left_file, is_left=False
             for hvp in hand_view_pose_group:
                 id =int(first_column_value),
                 filename = f"DIGITS_CJ_{str(int(first_column_value))}_{hvp}.csv"
-                print(f"Filename: {filename}")
+                #print(f"Filename: {filename}")
                 item = {
                         'id': id[0],
                         'filename': filename,
@@ -120,8 +107,7 @@ def process_goniometry_measurement_file(input_file, has_left_file, is_left=False
                 second_half_df = second_half_df.apply(lambda row: separate_row_by_pose(row, hvp), axis=1)
                 second_half_columns = [re.sub(r'\(.*\)', '', x) for x in second_half_df.columns]
                 # Remove the word 'joint' from the columns
-                second_half_columns = [re.sub(r'joint', '', x).strip() for x in second_half_columns]
-                 
+                second_half_columns = [re.sub(r'joint', '', x).strip() for x in second_half_columns]                 
 
                     # Change Fingernames to Mediapipe names for the fingers and then followed by the joints.
                 second_half_columns = [convert_real_finger_name_to_mediapipe_name_within_string(col) for col in second_half_columns] 
@@ -129,7 +115,6 @@ def process_goniometry_measurement_file(input_file, has_left_file, is_left=False
                 second_half_df.columns = second_half_columns
 
                 # Reorder the finger columns to match the mediapipe order
-
                 mediapipe_order = list(get_joint_names().values())
                 #Check if CMC mediapipe order is in the columns
                 if not mediapipe_order[0] in second_half_df.columns:
@@ -138,18 +123,15 @@ def process_goniometry_measurement_file(input_file, has_left_file, is_left=False
 
                 # Check if number of columns are equal
                 if len(mediapipe_order) == len(second_half_df.columns):
-                    second_half_df = second_half_df[mediapipe_order]
+                    second_half_df = second_half_df[mediapipe_order].copy().reset_index(drop=True)
                 else:
                     print(f"Columns do not match for {filename}")
                     print(f"Columns: {second_half_df.columns}")
                     print(f"Mediapipe Order: {mediapipe_order}")
-            
+
                 # Combine the first column with the second half
                 item_df = pd.DataFrame([item])
-                a = second_half_df.copy().reset_index(drop=True)
-                sdf = pd.concat([item_df, a], axis=1)
-               
-            
+                sdf = pd.concat([item_df, second_half_df ], axis=1)
                 ndf = pd.concat([ndf, sdf], axis=0, ignore_index=True)
                
         ndf.dropna(axis=0)

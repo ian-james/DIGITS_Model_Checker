@@ -171,6 +171,7 @@ def calculate_angle_between_digit_df(df, digit_name):
         return None
 
     # Get the column names for the digit
+
     ids = get_all_fingers_indices(True,True)[digit_name]
 
     # Make all the vectors
@@ -185,9 +186,10 @@ def calculate_angle_between_digit_df(df, digit_name):
         ndf[d] = df.apply(lambda row: np.subtract(row[name], row[name2]), axis=1)
 
     # Calculate the angle between each vector
-    
+    joints = get_digit_joint_names_from_digit(digit_name)    
+
     for i in range(1,len(dnames)):        
-        name = get_landmark_name(ids[i])        
+        name = joints[i-1]
         ndf[name] = ndf.apply(lambda x: calculate_angle(x[dnames[i-1]], x[dnames[i]]), axis=1)
 
     # Drop all vector columns

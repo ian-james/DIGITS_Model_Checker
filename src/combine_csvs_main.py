@@ -28,7 +28,7 @@ def main():
     parser.add_argument("-d","--directory", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Processed_Videos/analysis/nh_1_md_0.5_mt_0.5_mp_0.5/csvs/", help="Path to the input csv.") 
     parser.add_argument("-o","--out_filename", type=str, default="vs_combine_output.csv", help="Path and filename for the converted video.")
     parser.add_argument("-s","--stats_directory", type=str, default="", help="Specific Path for stats files (optional).") 
-    parser.add_argument("-m","--stats", type=str, default="all", help="Statistics to compute (var, std, mean, max, min)")
+    parser.add_argument("-m","--stats", type=str, default="mean", help="Statistics to compute (var, std, mean, max, min)")
      
     # Setup Arguments
     args = vars(parser.parse_args())
@@ -98,7 +98,7 @@ def main():
                 sfile = os.path.join(sdirectory,f"stats_{file_name}")                
                 stats_df.to_csv(sfile, header=True, sep="\t")
                 
-                stat_var = args['stats']   
+                stat_var = args['stats']                   
                 # Add the statistics to the item dataframe
                 if( isinstance(stat_var,str)):
                     if( stat_var == "all"):

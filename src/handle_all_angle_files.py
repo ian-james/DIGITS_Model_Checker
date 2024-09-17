@@ -17,7 +17,7 @@
 # Go through the filenames and group by the action the user is taking EXT, FIST, IM (  more poses for our data )
 # Compare them at pose level and save them as separate files
 
-# TODO Goniometery files don't have the same column name order or column names 
+# TODO Goniometery files don't have the same column name order or column names
 # They follow mostly the same format but Index,Long, Ring, Little, Thumb is the order and the pose(extension,flexion)
 # In Handle all angle files, we need to account for the slight differences in the filenames and convert to our standard names
 
@@ -32,9 +32,11 @@ from scipy import stats
 from scipy.stats import ttest_ind
 
 from file_utils import setupAnyCSV, clean_spaces
-from convert_mediapipe_index import get_joint_names
+from convert_mediapipe_index import get_joint_names, convert_real_finger_name_to_mediapipe_name_within_string
 
 from pprint import pprint
+
+from calculation_helpers import natural_sort_key
 
 from hand_file_builder import *
 
@@ -45,6 +47,11 @@ from hand_file_builder import *
 # get_joint_names()
 # LT_UT, LT_UT, RT_UT, LT_MT, RT_MT, LT_MP, RT_MP
 
+# This function will group the files by the filename
+# Subtract any repeated numbers from the filename
+# Drop the columns that are not numeric
+# Compute the statistics for each column
+# Save the statistics to a new file
 def process_stats(df_rows, stats_fun, ignore_columns,out_directory):
     # the first filename from the row
     row_name = df_rows['filename'].iloc[0]
@@ -66,14 +73,15 @@ def process_stats(df_rows, stats_fun, ignore_columns,out_directory):
     stats_df = rows.agg(stats_fun)
 
     # Add the filename as the first column in the table
-    stats_df.insert(0, 'filename', row_name)                
+    stats_df.insert(0, 'filename', row_name)
 
     sfile = f"{clean_spaces(row_name)}_stats.csv"
     stats_df.to_csv( os.path.join(out_directory,sfile) , index=False, header=True, sep=',')
     return stats_df
 
+# Process the individual files, save them as separate files
 def process_individual_files(stats_df, row_name, column_names, out_directory):
-    for col_name in column_names:     
+    for col_name in column_names:
         df_cols = stats_df.filter(like=col_name, axis=1)
         if( len(df_cols) <= 0):
             print(f"Column name not found: {col_name}")
@@ -83,21 +91,12 @@ def process_individual_files(stats_df, row_name, column_names, out_directory):
         sfile = f"{clean_spaces(row_name)}_{clean_spaces(col_name)}.csv"
         df_cols.to_csv(  os.path.join(out_directory,sfile) , index=False, header=True, sep=',')
 
-
-def get_longest_shared_filename(filename1, filename2):
-   
-    all_keywords = get_all_keywords()
-    patient_id = get_patient_id()
-
-    # TODO IF NOT WORKING`
-  
-
 def main():
 
     # Setup Arguments
     # args should be file_input and out_filename
     parser = argparse.ArgumentParser(description="Handle all the angle files.")
-    parser.add_argument("-f","--file", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Processed_Videos/analysis/nh_1_md_0.5_mt_0.5_mp_0.5/formatted_goniometry_measures.csv", help="Path to the input CSV file.")    
+    parser.add_argument("-f","--file", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Processed_Videos/analysis/nh_1_md_0.5_mt_0.5_mp_0.5/formatted_goniometry_measures.csv", help="Path to the input CSV file.")
     #parser.add_argument("-o","--out_filename", type=str, default="vs_combine_output.csv", help="Path and filename for the converted video.")
     parser.add_argument("-d","--directory", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Processed_Videos/analysis/nh_1_md_0.5_mt_0.5_mp_0.5/test", help='Output directory to save the files')
     parser.add_argument('-i', '--input', type=str, default="filename", help='Default column name to group by')
@@ -110,14 +109,14 @@ def main():
     parser.add_argument("-s", "--stats", type=str, default="mean", help="Statistics to compute (var, std, mean, max, min)")
 
     # Add an argument to select the final stats to select
-    parser.add_argument("-k", "--keep", type=str, default="max", help="Compute all the statistics")  
+    parser.add_argument("-k", "--keep", type=str, default="max", help="Compute all the statistics")
 
     # Example Groups
     # Setup Arguments
     args = vars(parser.parse_args())
     file_input = args['file']
     mfile = args['mfile']
-    
+
     out_directory = args['directory']
     header_input = args['input']
 
@@ -128,8 +127,7 @@ def main():
     DIR_THIER = "theirs"
     DIR_MINE = "mine"
     DIR_COMBINED = "combined"
-    
-    
+
     stats_fun = [args['stats']]
     #stats_fun = ['max', 'min', 'mean', 'median', 'std', sem]
 
@@ -140,7 +138,7 @@ def main():
     if( not os.path.exists(file_input) ):
         print(f"File not found: {file_input}")
         return
-    
+
     if( not os.path.exists(mfile) ):
         print(f"File not found: {mfile}")
         return
@@ -155,13 +153,20 @@ def main():
     for nd in [DIR_THIER, DIR_MINE]:
         os.makedirs(os.path.join(out_directory, nd),exist_ok=True)
         os.makedirs(os.path.join(out_directory, nd, DIR_VIEW_POSE),exist_ok=True)
-        os.makedirs(os.path.join(out_directory, nd, DIR_VIEW_POSE_ALL),exist_ok=True)        
+        os.makedirs(os.path.join(out_directory, nd, DIR_VIEW_POSE_ALL),exist_ok=True)
 
     # Try and load the CSV file
     try:
         # Setup their comparison csv files, nominally, theirs is the first file and mine is the second.
         df = setupAnyCSV(file_input,0)
         mdf = setupAnyCSV(mfile,0)
+
+        if(df['Index MCP'].isnull().values.any()):
+            print("Index MCP has null values")
+
+            # Print the head of the Index MCP 
+            print(df['Index MCP'].head())
+       
 
         # if the args['column_name'] is a file then load the names from the file
         if( args['column_name'] == ""):
@@ -183,7 +188,6 @@ def main():
         else:
             group_names = args['group_names']
 
-        
         # Clean up the spaces in the filename columns
         df['filename'] = df['filename'].apply(clean_spaces)
         mdf['filename'] = mdf['filename'].apply(clean_spaces)
@@ -195,9 +199,28 @@ def main():
         if( not check_if_file_is_in_lab_format(mdf['filename'].iloc[0]) ):
             mdf['filename'] = mdf['filename'].apply(change_filename_from_lab_numbers)
 
-        # Sort dataframes by filename
-        df = df.sort_values(by=['filename'])
-        mdf = mdf.sort_values(by=['filename'])
+        # Remove Stats names from any of the columns names
+        df.columns = [remove_stat_prefix_from_filename(col) for col in df.columns]
+        mdf.columns = [remove_stat_prefix_from_filename(col) for col in mdf.columns]
+
+        # Change Finger Names to be the same
+        df.columns = [convert_real_finger_name_to_mediapipe_name_within_string(col) for col in df.columns]
+        mdf.columns = [convert_real_finger_name_to_mediapipe_name_within_string(col) for col in mdf.columns]
+
+        # Sort the dataframes by the filename
+
+        df = df.sort_values(by='filename', key=lambda col: col.map(natural_sort_key))
+        mdf = mdf.sort_values(by='filename', key=lambda col: col.map(natural_sort_key))        
+
+        if(df['Index MCP'].isnull().values.any()):
+            print("Index MCP has null values")
+
+            # Print the head of the Index MCP 
+            print(df['Index MCP'].head())
+       
+        # Save the df and mdf changes to a new filed with the extension _cleaned
+        df.to_csv( os.path.join(out_directory, "df_cleaned.csv"), index=False, header=True, sep=',')
+        mdf.to_csv( os.path.join(out_directory, "mdf_cleaned.csv"), index=False, header=True, sep=',')        
 
         # Dataframe to hold all combined.
         all_combined_df = pd.DataFrame()
@@ -205,15 +228,31 @@ def main():
         # For each column name, group by that column name
         for row_name in group_names:
 
+            print(row_name)
+
             # Get all the rows that contain that name
-            df_rows = df[ df[header_input].str.contains(row_name, case=False, na=False)]
-            mdf_rows = mdf[ mdf[header_input].str.contains(row_name, case=False, na=False)]
+            df_rows = df[ df[header_input].str.contains(row_name, case=False, na=False)].copy()
+            mdf_rows = mdf[ mdf[header_input].str.contains(row_name, case=False, na=False)].copy()
 
-            pprint(df_rows['filename'])
+            print(mdf.head())
 
-            print(">>>>>>>>>>>>>>>>>>>>>>>>")
+            # pprint(df_rows['filename'])
+            # print(df_rows.shape)
 
-            pprint(df_rows['filename'])
+            # print(">>>>>>>>>>>>>>>>>>>>>>>>")
+
+            # pprint(mdf_rows['filename'])
+            # print(mdf_rows.shape)
+            
+            # Remove any columns that aren't in column
+            common_columns = df_rows.columns.intersection(mdf_rows.columns)
+
+            # # Print the missing columns from each dataframe
+            # missing_columns = df_rows.columns.difference(mdf_rows.columns)
+            # print(f"Missing columns in MDF: {missing_columns}")
+
+            # missing_columns = mdf_rows.columns.difference(df_rows.columns)
+            # print(f"Missing columns in DF: {missing_columns}")
 
             # If the column name is not found, then skip
             not_in_df = len(df_rows) <= 0
@@ -228,7 +267,8 @@ def main():
                 continue
 
             # If the stats is not empty, then compute the stats
-            if( args['stats'] != ""):                
+            if( args['stats'] != ""):
+                # Process Stats for the two dataframes, this calculates
                 stats_df = process_stats(df_rows, stats_fun, ignore_columns, os.path.join(out_directory, DIR_THIER, DIR_VIEW_POSE))
                 mstats_df = process_stats(mdf_rows, stats_fun, ignore_columns, os.path.join(out_directory, DIR_MINE, DIR_VIEW_POSE))
 
@@ -238,13 +278,15 @@ def main():
                 process_individual_files(mstats_df, row_name, column_names, os.path.join(out_directory,DIR_MINE,DIR_VIEW_POSE_ALL))
 
                 # Concat the two dataframe and save them in the output directory
-                combined_stat_df = pd.concat([stats_df, mstats_df], axis=0)
+                sdf = stats_df.copy().reset_index(drop=True)
+                msdf = mstats_df.copy().reset_index(drop=True)
+                combined_stat_df = pd.concat([sdf,msdf], axis=0)
                 combined_stat_df.to_csv( os.path.join(out_directory,  f"{row_name}_concated_stats.csv"), index=False, header=True, sep=',')
 
                 # Subtract all columns that have matching column names, excluding the filename or ignore columns
                 # remove the filename and ignore columns
                 stats_df = stats_df.drop(columns=ignore_columns, errors='ignore')
-                mstats_df = mstats_df.drop(columns=ignore_columns, errors='ignore')              
+                mstats_df = mstats_df.drop(columns=ignore_columns, errors='ignore')
 
                 # Subtract the two dataframes
                 results = (stats_df - mstats_df).abs()
@@ -258,20 +300,17 @@ def main():
                     keep_columns = results.filter(like=args['keep'], axis=1)
                     keep_file = os.path.join(out_directory, DIR_VIEW_POSE_COMPARE,f"{clean_spaces(row_name)}_{args['keep']}_compare.csv")
                     keep_columns.to_csv(keep_file, index=False, header=True, sep=',')
-                
-                # add the filename to the start of the dataframe                
+
+                # add the filename to the start of the dataframe
                 # stats_df.insert(0, 'filename', "one")
                 # mstats_df.insert(0, 'filename', "two")
 
                 # Combine the two dataframes so that it creates two rows for each file
                 combined_df = pd.concat([stats_df, mstats_df], axis=0, ignore_index=True)
-                
+
                 # Save the combined file, to the combined directory with the name of the row
                 combine_file = os.path.join(out_directory, DIR_COMBINED, f"{clean_spaces(row_name)}_combined.csv")
                 combined_df.to_csv( combine_file, index=False, header=True, sep=',')
-
-
-                
 
     except FileNotFoundError:
         print(f"File not found: {file_input}")
