@@ -81,8 +81,10 @@ def main():
     # Setup Arguments
     # args should be file_input and out_filename
     parser = argparse.ArgumentParser(description="Handle all the angle files.")
-    parser.add_argument("-d","--directory", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/final/combined/", help="Path to the input csv.")
-    parser.add_argument("-o","--out_directory", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/final/combined/table_setup/", help="Path to the output csv.")
+    base_directory = "/home/jame/Projects/Western/Western_Postdoc/Datasets/Processed_Videos/analysis/nh_1_md_0.5_mt_0.5_mp_0.5/test/final/"
+    #base_directory="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/final/
+    parser.add_argument("-d","--directory", type=str, default=os.path.join(base_directory,"combined"), help="Path to the input csv.")
+    parser.add_argument("-o","--out_directory", type=str, default=os.path.join(base_directory,"combined/table_setup/"), help="Path to the output csv.")
 
     args = vars(parser.parse_args())
 
@@ -149,15 +151,31 @@ def their_vs_mine_main():
     # Setup Arguments
     # args should be file_input and out_filename
     parser = argparse.ArgumentParser(description="Handle all the angle files.")
-    parser.add_argument("-d","--directory", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/final/combined/", help="Path to the input csv.")
-    parser.add_argument("-o","--out_directory", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/final/compare/table_setup/", help="Path to the output csv.")
-    parser.add_argument("-c","--compare", type=str, default="mine", help="Compare Ethans to mine.")
+    # parser.add_argument("-d","--directory", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/final/combined/", help="Path to the input csv.")
+    # parser.add_argument("-o","--out_directory", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/final/compare/table_setup/", help="Path to the output csv.")
+    # parser.add_argument("-t","--ttest_directory", type=str,
+    #                     default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/final/combined/",
+    #                     help="Path to the ttest (if not the default) only works with my comparison.")
+    
+
+    # parser.add_argument("-q","--quartile_directory", type=str,
+    #                     default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/final/compare/")
+    
+    # TESTING
+    base_directory = "/home/jame/Projects/Western/Western_Postdoc/Datasets/Processed_Videos/analysis/nh_1_md_0.5_mt_0.5_mp_0.5/test/final/"
+    parser.add_argument("-d","--directory", type=str, default=os.path.join(base_directory,"combined"), help="Path to the input csv.")
+    parser.add_argument("-o","--out_directory", type=str, default=os.path.join(base_directory,"compare/table_setup/"), help="Path to the output csv.")
+
     parser.add_argument("-t","--ttest_directory", type=str,
-                        default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/final/combined/",
+                        default=os.path.join(base_directory,"combined"),
                         help="Path to the ttest (if not the default) only works with my comparison.")
+    
 
     parser.add_argument("-q","--quartile_directory", type=str,
-                        default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/final/compare/",)
+                        default=os.path.join(base_directory,"compare"))
+    
+    
+    parser.add_argument("-c","--compare", type=str, default="mine", help="Compare Ethans to mine.")
 
     args = vars(parser.parse_args())
 
@@ -214,19 +232,28 @@ def their_vs_mine_main():
                 df['pose']=pose
 
                 # Example - quartiles_my_Lt_Palmar_Ext.csv
+                # Example - Mine - quartiles_my_combined_Palmar_Ext_combined.csv
+                # TODO - Put this in a bool expression.
                 my_qfile  = f"quartiles_my_{build_nvp_filename('combined', view, pose)}.csv"
-                mq_df = setupAnyCSV(os.path.join(quartile_directory,my_qfile))
+                my_qfile  = f"quartiles_my_{build_nvp_filename('combined', view, pose)}_combined.csv"
+
+                
+                my_qfile = os.path.join(quartile_directory,my_qfile)
+                # Check if f exists, if not change to other file format
+                mq_df = setupAnyCSV(my_qfile)
                 mqcols =  mq_df[tstats]
                 mqcols = mqcols.add_prefix("my_")
 
                 # Example - quartiles_my_Lt_Palmar_Ext.csv
                 my_tfile  = f"quartiles_their_{build_nvp_filename('combined', view, pose)}.csv"
+                my_tfile  = f"quartiles_their_{build_nvp_filename('combined', view, pose)}_combined.csv"
                 mt_df = setupAnyCSV(os.path.join(quartile_directory,my_tfile))
                 mtcols =  mt_df[tstats]
                 mtcols = mtcols.add_prefix("their_")
 
                 # Example ttest_my_their_Rt_Palmar_Ext.csv
                 t_file = f"ttest_{build_nvp_filename('combined_hands', view, pose)}.csv"
+                t_file = f"ttest_{build_nvp_filename('combined_hands', view, pose)}_combined.csv"
                 t_df = setupAnyCSV(os.path.join(ttest_directory,t_file))                
                 tcols = t_df[pval]
 

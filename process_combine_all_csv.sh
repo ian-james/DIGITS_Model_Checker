@@ -11,11 +11,12 @@ usage() {
 }
 
 # Parse command-line options
-while getopts "d:o:s:h" opt; do
+while getopts "d:o:s:m:h" opt; do
     case "$opt" in
         d) csv_directory=$OPTARG ;;
         o) output_filename=$OPTARG ;;
         s) stats_dir=$OPTARG ;;
+        m) stats=$OPTARG ;;
         h) usage ;;
         *) usage ;;
     esac
@@ -51,7 +52,7 @@ fi
 
 # Combine CSV files with the specified Python script
 echo "Combining CSV files..."
-python ./src/combine_csvs_main.py -d "$csv_directory" -o "$output_filename" -s "$stats_dir"
+python ./src/combine_csvs_main.py -d "$csv_directory" -o "$output_filename" -s "$stats_dir" -m "$stats"
 
 echo "Process completed."
 

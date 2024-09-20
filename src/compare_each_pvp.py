@@ -78,7 +78,6 @@ def main():
 
     ignore_columns = ['filename', 'nh', 'md', 'mt', 'mp', 'model', 'basename', 'group']
 
-
     # Check the files and directories are created
     if( not os.path.exists(file_input) ):
         print(f"File not found: {file_input}")
@@ -133,14 +132,8 @@ def main():
         for key in shared_keys:
             # Get the group for each key
             df_group = df_grouped.get_group(key)
-            print(df_group)
             mdf_group = mdf_grouped.get_group(key)
-            print(mdf_group)
-
-            # Print the Index MCP values
-            print(f"Index MCP: {df_group['Index MCP'].values}")
-            print(f"Index MCP: {mdf_group['Index MCP'].values}")
-
+        
             df_group.to_csv(os.path.join(base_folder, "diffs", f"test_{key}_df.csv"), index=False)
             mdf_group.to_csv(os.path.join(base_folder,"diffs",f"test2_{key}_df.csv"), index=False)
 

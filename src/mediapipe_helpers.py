@@ -79,6 +79,22 @@ def _normalized_to_pixel_coordinates(
   return x_px, y_px
 
 
+def get_hand_detection_bounding_box(detection):
+
+    if detection.hand_landmarks is None:
+        return
+    
+    for hand_landmarks in detection.hand_landmarks:
+        x_values = [lm.x for lm in hand_landmarks]
+        y_values = [lm.y for lm in hand_landmarks]
+
+        # Get min/max for x and y
+        min_x = min(x_values)
+        max_x = max(x_values)
+        min_y = min(y_values)
+        max_y = max(y_values)
+
+    return [min_x, min_y, max_x - min_x, max_y - min_y]
 
 # Create a image segmenter instance with the live stream mode: Callback
 # Used only for video or live stream
@@ -92,7 +108,6 @@ def get_face_model():
     options = vision.FaceDetectorOptions(base_options=base_options)
     detector = vision.FaceDetector.create_from_options(options)
     return detector
-
 
 # Image segmentation
 def get_segmentation_model():
@@ -289,22 +304,22 @@ class FrameProcessor:
 
     def detect(self, image):
         return self.detector.detect(image)
-
-    def process_frame(self, frame, frame_id):
-        """
-        Process an image frame using the detector and store the results in the dataframe.
-
-        :param frame: The image frame to process.
-        :param frame_id: An identifier for the frame.
-        """
-        # Use the detector to process the frame
+    
+    def process_detection_results(self, frame):
         try:
             if(self.resolution == (1,1,1)):
                 self.resolution = (frame.shape[1],frame.shape[0],1)
 
             converted_frame = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
             detection_results = self.detect(converted_frame)
-
+            return detection_results
+        except Exception as e:
+            print(f"An error occurred while processing the frame: {e}")
+        return None
+    
+    def process_image_drawing(self, frame, frame_id, detection_results):
+        try:
+            converted_frame = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
             if self.check_results_exist(detection_results):
                 # STEP 5: Process the classification result. In this case, visualize it.
                 enhanced_frame = self.draw_on_image(converted_frame.numpy_view(), detection_results)
@@ -318,10 +333,19 @@ class FrameProcessor:
 
             return detection_results, frame
 
-
         except Exception as e:
             print(f"An error occurred while processing the frame: {e}")
-        return None, frame, frame
+        return None, frame
+
+    def process_frame(self, frame, frame_id):
+        """
+        Process an image frame using the detector and store the results in the dataframe.
+
+        :param frame: The image frame to process.
+        :param frame_id: An identifier for the frame.
+        """
+        detection_results = self.process_detect_results(frame, frame_id)
+        return self.process_image_drawing(frame, frame_id, detection_results)
 
     def finalize_dataframe(self):
         if(self.data):
@@ -371,7 +395,7 @@ class FrameProcessor:
 
 class ImageSegmenter_Wrapper(FrameProcessor):
     def __init__(self, detector):
-        self.detector = detector
+         FrameProcessor.__init__(self, detector)
 
     def detect(self, image):
         return self.detector.segment(image)
@@ -422,6 +446,32 @@ class FaceDetector_Wrapper(FrameProcessor):
         row = {'time': frame_id , 'timestamp': datetime.now(timezone.utc).isoformat() }
         df = pd.DataFrame(row, index=[0])
         return df
+    
+    def blur_face(self, frame, face_coords):
+        x, y, w, h = face_coords
+        # Extract the region of interest (ROI)
+        roi = frame[y:y+h, x:x+w]
+        # Apply Gaussian blur to the ROI
+        roi_blurred = cv2.GaussianBlur(roi, (51, 51), 30)
+        # Replace the ROI with the blurred version in the frame
+        frame[y:y+h, x:x+w] = roi_blurred
+        return frame
+    
+    def blur_face_avoiding_hand(self, frame, face_coords, hand_coords):
+        x, y, w, h = face_coords
+        # Create a mask for the face region
+        mask = np.zeros(frame.shape[:2], dtype=np.uint8)
+        mask[y:y+h, x:x+w] = 255
+
+        # Create a mask for the hand region and subtract it from the face mask
+        hx, hy, hw, hh = hand_coords
+        mask[hy:hy+hh, hx:hx+hw] = 0
+
+        # Apply Gaussian blur to the whole image
+        blurred_frame = cv2.GaussianBlur(frame, (51, 51), 30)
+        # Combine the blurred frame with the original frame using the mask
+        frame[mask == 255] = blurred_frame[mask == 255]
+        return frame
 
     def draw_on_image_box_and_features(self, frame, detection_results):
 
@@ -471,10 +521,50 @@ class FaceDetector_Wrapper(FrameProcessor):
         for detection in detection_results.detections:
             # Draw bounding_box
             bbox = detection.bounding_box
-            annotated_image[bbox.origin_y:bbox.origin_y+bbox.height,bbox.origin_x:bbox.origin_x+bbox.width] = TEXT_COLOR
-
-
+            annotated_image = self.blur_face(annotated_image, [bbox.origin_x, bbox.origin_y,bbox.width,bbox.height])
+            #annotated_image[bbox.origin_y:bbox.origin_y+bbox.height,bbox.origin_x:bbox.origin_x+bbox.width] = TEXT_COLOR
         return annotated_image
+    
+    def draw_on_image_boxes(self, frame, face_dectect, hand_detect):
+
+        TEXT_COLOR = (0, 0, 0)
+
+        annotated_image = frame.copy()
+        height, width, _ = frame.shape
+
+        bbox = face_dectect.bounding_box
+    
+        annotated_image = self.blur_face_avoiding_hand(annotated_image, [bbox.origin_x, bbox.origin_y,bbox.width,bbox.height], hand_detect)
+        
+        return annotated_image
+    
+    def process_image_drawing_detections(self, frame, frame_id, detection_results, hand_results):
+        try:
+            converted_frame = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
+            if self.check_results_exist(detection_results):
+                hand_bbox = get_hand_detection_bounding_box(hand_results)
+                # STEP 5: Process the classification result. In this case, visualize it.
+                hand_bbox[0] = int(hand_bbox[0] * frame.shape[1])
+                hand_bbox[1] = int(hand_bbox[1] * frame.shape[0])
+                hand_bbox[2] = int(hand_bbox[2] * frame.shape[1])
+                hand_bbox[3] = int(hand_bbox[3] * frame.shape[0])
+
+                enhanced_frame = self.draw_on_image_boxes(converted_frame.numpy_view(), detection_results.detections[0], hand_bbox)
+                frame_data = self.get_df_frame(detection_results,frame_id)
+                self.data.append(frame_data)
+                return detection_results, enhanced_frame
+
+            elif( self.enable_empty_frame_collection):
+                frame_data = setup_frame_dictionary(frame_id)
+                self.data.append(frame_data)
+
+            return detection_results, frame
+
+        except Exception as e:
+            print(f"An error occurred while processing the frame: {e}")
+        return None, frame
+    
+    
 
 ###########################################################################################################
 

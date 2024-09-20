@@ -119,8 +119,11 @@ def main():
     parser = argparse.ArgumentParser(description="Handle all the angle files.")
 
     # parser a list of directories
-    parser.add_argument("-i","--input_directory", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/final/raw_combined/", help="Directory of combined files for final analysis")
-    parser.add_argument("-d","--out_directory", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/final/", help='Output directory to save the files')
+    #parser.add_argument("-i","--input_directory", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/final/raw_combined/", help="Directory of combined files for final analysis")
+    #parser.add_argument("-d","--out_directory", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Sasha_Datasets/final/", help='Output directory to save the files')
+
+    parser.add_argument("-i","--input_directory", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Processed_Videos/analysis/nh_1_md_0.5_mt_0.5_mp_0.5/test/combined/", help="Directory of combined files for final analysis")
+    parser.add_argument("-d","--out_directory", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Processed_Videos/analysis/nh_1_md_0.5_mt_0.5_mp_0.5/test/final/", help='Output directory to save the files')
 
     args = vars(parser.parse_args())
     out_directory = args['out_directory']
@@ -168,16 +171,34 @@ def main():
             results = []
             final_df = pd.DataFrame()
 
-            groupby =  'filename' if('filename' in combined_df.columns) else 'Group_name'
+            groupby = 'Group_name'
+            if('filename' in combined_df.columns):
+                groupby = 'filename'
+            elif('basename' in combined_df.columns):
+                groupby = 'basename'
+       
             cols_test = [col for col in combined_df.columns if col not in [groupby, 'hand']]
-            cols_test = [col for col in cols_test if col.startswith('max_')]
-        
+
+            # This for Sasha's data
+            if( 'max' in cols_test[0]):
+                cols_test = [col for col in cols_test if col.startswith('max_')]
 
             #################################################################################################################
             ############################## T-TEST ###########################################################################
             # Get Groups
             left_grp = left_df.groupby(groupby)[cols_test]
             right_grp = right_df.groupby(groupby)[cols_test]
+
+            # Get the group names
+            left_group_names = left_grp.groups.keys()
+            right_group_names = right_grp.groups.keys()
+
+            # Get the group names that are in both groups
+            group_names = [name for name in left_group_names if name in right_group_names]
+            
+            if(len(group_names) < 2):
+                print(f"No common group names between {left_file} and {right_file}")
+                continue
 
             my_left_grp = left_grp.get_group('two')[cols_test]
             my_right_grp = right_grp.get_group('two')[cols_test]
@@ -189,6 +210,10 @@ def main():
             combined_mine_grp = combined_df.groupby(groupby).get_group('two')[cols_test]
 
             # Compare My Left side values to their Left side values
+            # TODO THIS occassionaly has 
+            # RuntimeWarning: invalid value encountered in scalar divide
+            # svar = ((n1 - 1) * v1 + (n2 - 1) * v2) / df
+            #
             results = run_ttest( their_left_grp, my_left_grp)
             save_results(results, compare_out_directory, f"ttest_my_their_{left_file}")
 

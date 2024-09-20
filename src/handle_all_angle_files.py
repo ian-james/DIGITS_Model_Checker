@@ -161,13 +161,6 @@ def main():
         df = setupAnyCSV(file_input,0)
         mdf = setupAnyCSV(mfile,0)
 
-        if(df['Index MCP'].isnull().values.any()):
-            print("Index MCP has null values")
-
-            # Print the head of the Index MCP 
-            print(df['Index MCP'].head())
-       
-
         # if the args['column_name'] is a file then load the names from the file
         if( args['column_name'] == ""):
             column_names = get_joint_names().values()
@@ -211,12 +204,6 @@ def main():
 
         df = df.sort_values(by='filename', key=lambda col: col.map(natural_sort_key))
         mdf = mdf.sort_values(by='filename', key=lambda col: col.map(natural_sort_key))        
-
-        if(df['Index MCP'].isnull().values.any()):
-            print("Index MCP has null values")
-
-            # Print the head of the Index MCP 
-            print(df['Index MCP'].head())
        
         # Save the df and mdf changes to a new filed with the extension _cleaned
         df.to_csv( os.path.join(out_directory, "df_cleaned.csv"), index=False, header=True, sep=',')
@@ -234,25 +221,10 @@ def main():
             df_rows = df[ df[header_input].str.contains(row_name, case=False, na=False)].copy()
             mdf_rows = mdf[ mdf[header_input].str.contains(row_name, case=False, na=False)].copy()
 
-            print(mdf.head())
-
-            # pprint(df_rows['filename'])
-            # print(df_rows.shape)
-
-            # print(">>>>>>>>>>>>>>>>>>>>>>>>")
-
-            # pprint(mdf_rows['filename'])
-            # print(mdf_rows.shape)
-            
+             # If the stats is not empty, then compute the stats            
             # Remove any columns that aren't in column
             common_columns = df_rows.columns.intersection(mdf_rows.columns)
 
-            # # Print the missing columns from each dataframe
-            # missing_columns = df_rows.columns.difference(mdf_rows.columns)
-            # print(f"Missing columns in MDF: {missing_columns}")
-
-            # missing_columns = mdf_rows.columns.difference(df_rows.columns)
-            # print(f"Missing columns in DF: {missing_columns}")
 
             # If the column name is not found, then skip
             not_in_df = len(df_rows) <= 0
@@ -302,8 +274,8 @@ def main():
                     keep_columns.to_csv(keep_file, index=False, header=True, sep=',')
 
                 # add the filename to the start of the dataframe
-                # stats_df.insert(0, 'filename', "one")
-                # mstats_df.insert(0, 'filename', "two")
+                stats_df.insert(0, 'Group_name', "one")
+                mstats_df.insert(0, 'Group_name', "two")
 
                 # Combine the two dataframes so that it creates two rows for each file
                 combined_df = pd.concat([stats_df, mstats_df], axis=0, ignore_index=True)
