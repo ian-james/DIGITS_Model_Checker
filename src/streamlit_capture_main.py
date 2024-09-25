@@ -38,6 +38,8 @@ from mediapipe_helpers import *
 from scipy import stats
 import project_settings as ps
 
+from streamlit_utils import save_uploadedfile, download_dataframe, display_download_buttons
+
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
 mp_pose = mp.solutions.pose
@@ -72,38 +74,6 @@ def save_uploadedfile(uploadedfile, folder='tempDir'):
 
     return location, st.success("Saved File:{} to tempDir".format(uploadedfile.name))
 
-
-def download_dataframe(df, file_name, file_format):
-
-    if(df is None):
-        st.write("No data to download.")
-        return
-
-    # Create a button to download the file
-    output = BytesIO()
-    if file_format == 'xlsx':
-        df.to_excel(output,sheet_name="Sheet1", index=False, header=True)
-        mime_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    elif file_format == 'csv':
-        df.to_csv(output, sep='\t', index=False)
-        mime_type = 'text/csv'
-
-    output.seek(0)
-
-    if file_format == 'xlsx':
-        ext = 'xlsx'
-    elif file_format == 'csv':
-        ext = 'csv'
-
-    file_label = f'Download {file_format.upper()}'
-    file_download = f'{file_name}.{ext}'
-    b64 = base64.b64encode(output.read()).decode()
-
-    st.markdown(
-        f'<a href="data:file/{mime_type};base64,{b64}" download="{file_download}">{file_label}</a>',
-        unsafe_allow_html=True
-    )
-
 def set_state_option(key,value):
     if key not in st.session_state:
         st.session_state[key] = value
@@ -124,13 +94,6 @@ def allow_download_button(file_path):
     with open(file_path, 'rb') as my_file:
         st.download_button(label='Download', data=my_file, file_name='filename.xlsx',
                        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-
-def display_download_buttons(df, file_path):
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        download_dataframe(df, file_path, "csv")
-    with col2:
-        download_dataframe(df, file_path, 'xlsx')
 
 def run_original_streamlit_video_mediapipe_main(cap, frame_processor):
 

@@ -135,6 +135,7 @@ def setup_file_upload(uploaded_file):
             df_filtered = df_filtered[options_x_axis + options]
 
         st.expander("Show Filtered Data", expanded=False).write(df_filtered)
+        display_download_buttons(df_filtered, uploaded_file)
 
         # Checkbox to indicate if y-axis range should be changed
         yaxis_change = st.checkbox("Change y-axis range", value=False, key="yaxis_change")
