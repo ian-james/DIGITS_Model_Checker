@@ -44,24 +44,20 @@ def download_dataframe(df, file_name, file_format):
     if file_format == 'xlsx':
         df.to_excel(output,sheet_name="Sheet1", index=False, header=True)
         mime_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        ext = 'xlsx'
     elif file_format == 'csv':
         df.to_csv(output, sep='\t', index=False)
         mime_type = 'text/csv'
+        ext = 'csv'
 
     output.seek(0)
 
-    if file_format == 'xlsx':
-        ext = 'xlsx'
-    elif file_format == 'csv':
-        ext = 'csv'
-
-    file_label = f'Download {file_format.upper()}'
-    file_download = f'{file_name}.{ext}'
-    b64 = base64.b64encode(output.read()).decode()
-
-    st.markdown(
-        f'<a href="data:file/{mime_type};base64,{b64}" download="{file_download}">{file_label}</a>',
-        unsafe_allow_html=True
+    # Use Streamlit's download button for cleaner handling
+    st.download_button(
+        label=f"Download as {file_format.upper()}",
+        data=output,
+        file_name=f"{file_name}.{ext}",
+        mime=mime_type
     )
 
 
