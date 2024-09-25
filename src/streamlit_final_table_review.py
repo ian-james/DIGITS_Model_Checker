@@ -138,6 +138,8 @@ def setup_file_upload(uploaded_file):
 
         # Checkbox to indicate if y-axis range should be changed
         yaxis_change = st.checkbox("Change y-axis range", value=False, key="yaxis_change")
+        
+        graph_type = st.selectbox('Select Graph Type', ['Bar', 'Line', 'Scatter', 'Histogram', 'Box'])
 
         # Plotting the selected columns
         if options_x_axis and options:
@@ -146,21 +148,45 @@ def setup_file_upload(uploaded_file):
 
             # Group the data by the concatenated group values and calculate the mean
             df_grouped = df_filtered.groupby('Group')[options].mean().reset_index()
-
-            # Create a bar chart for the grouped data
-            fig = px.bar(df_grouped, 
-                        x='Group',           # Use the concatenated group as x-axis
-                        y=options,           # Y-axis columns
-                        barmode='group',     # Group bars for different y-columns
-                        labels={'Group': ', '.join(options_x_axis)})  # Dynamic label for x-axis
             
-            # Update the layout for better visualization of grouped categories
+            # Define the figure based on the selected graph type
+            if graph_type == 'Bar':
+                fig = px.bar(df_grouped, 
+                            x='Group',           # Use the concatenated group as x-axis
+                            y=options,           # Y-axis columns
+                            barmode='group',     # Group bars for different y-columns
+                            labels={'Group': ', '.join(options_x_axis)})  # Dynamic label for x-axis
+
+            elif graph_type == 'Line':
+                fig = px.line(df_grouped, 
+                            x='Group', 
+                            y=options, 
+                            labels={'Group': ', '.join(options_x_axis)})
+
+            elif graph_type == 'Scatter':
+                fig = px.scatter(df_grouped, 
+                                x='Group', 
+                                y=options, 
+                                labels={'Group': ', '.join(options_x_axis)})
+
+            elif graph_type == 'Histogram':
+                fig = px.histogram(df_filtered, 
+                                x='Group', 
+                                y=options[0],   # Histograms typically work with single columns
+                                labels={'Group': ', '.join(options_x_axis)})
+
+            elif graph_type == 'Box':
+                fig = px.box(df_filtered, 
+                            x='Group', 
+                            y=options[0],       # Box plots usually show one variable distribution
+                            labels={'Group': ', '.join(options_x_axis)})
+
+            # Update the layout for better visualization
             fig.update_layout(
                 xaxis_title=", ".join(options_x_axis),  # Show all group columns on x-axis
                 yaxis_title="Y Values",
                 xaxis={'categoryorder':'total descending'},  # Order the categories if needed
-                barmode='group'  # Group bars together for different Y columns
-            )
+            )       
 
             # Display the plot
             st.plotly_chart(fig, use_container_width=True)
