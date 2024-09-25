@@ -22,10 +22,12 @@ from file_utils import setupAnyCSV
 
 from stats_functions import compute_statistics
 
+
 def page_setup():
     st.set_page_config(page_title="Mediapipe Analysis", page_icon=":bar_chart:", layout="wide")
     st.title("Mediapipe Analysis")
     st.write("### This tools is designed to analyze data from a CSV file.")
+    
 
 def setup_sidebar():
 
@@ -58,6 +60,8 @@ def setup_file_upload(uploaded_file):
     # Streamlit application starts her
     if(uploaded_file):
         st.write("### Data Preview")
+        
+        
         df = load_data(uploaded_file)
 
         if(df is None):
@@ -211,7 +215,9 @@ def main():
     uploaded_file, mode_src, debug  = setup_sidebar()
 
     if(uploaded_file):
-        setup_file_upload(os.path.join(project_directory,uploaded_file.name))
+        file=uploaded_file.name
+        #file = os.join(project_directory,file)
+        setup_file_upload(file)
 
 if __name__ == '__main__':
     main()
