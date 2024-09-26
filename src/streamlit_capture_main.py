@@ -38,7 +38,12 @@ from mediapipe_helpers import *
 from scipy import stats
 import project_settings as ps
 
-from streamlit_utils import save_uploadedfile, download_dataframe, display_download_buttons
+from streamlit_utils import save_uploadedfile,  display_download_buttons, download_image
+
+# Calculate Angles 
+from calculate_joints_and_length import convert_csv_with_xyz_to_landmarks, calculate_all_finger_angle_df
+
+import tempfile
 
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
@@ -94,6 +99,33 @@ def allow_download_button(file_path):
     with open(file_path, 'rb') as my_file:
         st.download_button(label='Download', data=my_file, file_name='filename.xlsx',
                        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        
+def convert_image_to_bytes(image, format='png'):
+    """
+    Converts an OpenCV image to a BytesIO object in the specified format.
+
+    Args:
+        image: The OpenCV image to be converted (numpy array).
+        format: The desired file format ('png', 'jpg', 'jpeg', 'bmp').
+
+    Returns:
+        A BytesIO object containing the encoded image.
+    """
+    # Map file formats to their correct encoding string
+    format = format.lower()
+    valid_formats = {'png': '.png', 'jpg': '.jpg', 'jpeg': '.jpg', 'bmp': '.bmp', 'svg': '.svg'}
+    
+    if format not in valid_formats:
+        raise ValueError(f"Unsupported format: {format}. Supported formats: {list(valid_formats.keys())}")
+
+    # Encode the image to the specified format
+    is_success, buffer = cv2.imencode(valid_formats[format], image)
+    if not is_success:
+        raise ValueError(f"Failed to encode image to {format.upper()} format.")
+    
+    # Convert the buffer to BytesIO for download
+    return BytesIO(buffer)
+
 
 def run_original_streamlit_video_mediapipe_main(cap, frame_processor):
 
@@ -118,50 +150,21 @@ def run_original_streamlit_video_mediapipe_main(cap, frame_processor):
                 logging.info("Finished the video.")
                 break
             else:
+                
                 logging.info("Ignoring empty camera frame.")
                 continue
 
         original_placeholder.image(image=image, caption="Original Image", channels="BGR")
-        results, rimage = frame_processor.process_frame(image,fps.total_num_frames)
-        if(results is not None and results.hand_landmarks != []):
-            frame_placeholder.image(image=rimage, caption="Enhanced Image", channels="BGR")
-        else:
-            frame_placeholder.image(image=rimage.numpy_view(), caption="Enhanced Image", channels="BGR")
         
+        bimage = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        
+        results, rimage = frame_processor.process_frame(bimage,fps.total_num_frames)
+        frame_placeholder.image(image=rimage, caption="Enhanced Image", channels="RGB")
     
     st.write("## FINISHED ANALYSIS")
     frame_processor.finalize_dataframe()
     datatable_placeholder.dataframe(frame_processor.get_dataframe(), hide_index=True)  # You can also use st.write(df)
     return frame_processor.get_dataframe()
-
-
-# def graph_df(df):
-#     if(df is not None):
-
-#         cols = convert_mp.convert_all_columns_to_friendly_name(df,[])
-#         df.columns = cols
-
-#         # Let the user select the columns to plot
-#         options_x_axis = st.selectbox('Select columns to plot on the x-axis',cols, key="x_axis")
-
-#         options = st.multiselect('Select columns to plot (max 4)',cols, key="label_axis")
-
-#         if len(options) > 8:
-#             st.warning('Please select no more than 4 columns.')
-#             options = options[:8]  # Keep only the first 4 selections
-
-#         # Checkbox to indicate if y-axis should be changed
-#         yaxis_change = st.checkbox("Change y-axis range", value=False, key="yaxis_change")
-
-#         # Plotting the selected columns
-#         if( (len(options_x_axis) >= 1)  and (len(options) >= 1)):
-#             #fig = px.scatter(df, x=options_x_axis, color_continuous_scale=px.colors.sequential.Viridis)
-#             fig = px.line(df, x=options_x_axis, y=options, color_discrete_sequence=px.colors.qualitative.Plotly)
-#             if(yaxis_change):
-#                 fig.update_yaxes(range=[0, 1])
-#             st.plotly_chart(fig)
-
-#             draw_histogram_and_qq_plots(df[options], "norm", colors=px.colors.qualitative.Plotly)
 
 @st.cache_data
 def load_data(filename):
@@ -200,13 +203,36 @@ def anaysis_image(file_directory,filename, frame_processor):
             frame_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             results, rimage = frame_processor.process_frame(frame_rgb,0)
             st.image(image=rimage, caption="Enhanced Image", channels="RGB")
+          
 
             # Display the DataFrame
             st.write("## Frame Data")
             frame_processor.finalize_dataframe()
-            st.dataframe(frame_processor.get_dataframe(), hide_index=True)
+            
+            df = frame_processor.get_dataframe()
+            
+            df.columns = convert_mp.convert_all_columns_to_friendly_name(frame_processor.get_dataframe(),['timestamp','time','handedness'])
+            st.dataframe(df, hide_index=True)    
+            
             if(filename is not None):
                 display_download_buttons(frame_processor.get_dataframe(), os.path.join(file_directory, Path(filename).stem))
+            
+            # Calculate the angles based on the landmarks
+            df = convert_csv_with_xyz_to_landmarks(df)
+            
+            fangles = calculate_all_finger_angle_df(df, None)
+            fdf = pd.DataFrame.from_dict(fangles)   
+            
+            st.write("## Angle Data")
+            st.dataframe(fdf, hide_index=True)
+            
+            # Download the angles files
+            if(filename is not None):
+                display_download_buttons(fdf, os.path.join(file_directory,"angles_", Path(filename).stem))
+                st.write("## Download Images")
+                st.download_button(label='Download Image', data=convert_image_to_bytes(image), file_name="image.png", mime="image/png")
+                bimage = cv2.cvtColor(rimage, cv2.COLOR_RGB2BGR)
+                st.download_button(label='Download Enhanced Image', data=convert_image_to_bytes(bimage), file_name="enhanced_image.png", mime="image/png")
         else:
             st.write(f"Video file is not open {filename}")
 
@@ -239,24 +265,26 @@ def main():
         title.title("Image Analysis")
         st.subheader("Analyse a single image.")
         st.divider()
-        uploaded_file = st.file_uploader("Upload an image file", type=["jpg", "png", "jpeg"])
+        uploaded_file = st.file_uploader("Upload an image file", type=["jpg",
+                                                                       "png", "jpeg"])
         st.write(uploaded_file)
         if(uploaded_file):
             if uploaded_file is not None:
                 # To read file as bytes:
                 file_directory = os.path.join(project_directory, ps._SAVED_IMAGES)
                 filename, result = save_uploadedfile(uploaded_file, file_directory)
+                
                 st.write(f"File saved: {filename}")
                 if (result):
                     anaysis_image(project_directory, filename, frame_processor)
 
     elif (mode_src == 'Camera'):
         with VideoCap_Info.with_no_info() as cap:
-            cap.setup_capture(4)
+            
+            cap.setup_capture(-1)
             run_original_streamlit_video_mediapipe_main(cap, frame_processor)
         if(filename is not None):
-            display_download_buttons(frame_processor.get_dataframe(), os.path.join(file_directory, Path(filename).stem))
-        
+            display_download_buttons(frame_processor.get_dataframe(), os.path.join(file_directory, Path(filename).stem))        
 
     elif (mode_src == 'Video'):
         title.title("Video Analysis")
@@ -265,18 +293,16 @@ def main():
         # Upload the video and save it
         uploaded_file = st.file_uploader("Upload a video file", type=["mp4", "avi", "mov"])
         if (uploaded_file):
-            file_directory = os.path.join(project_directory, ps._SAVED_VIDEOS)
-            filename, result = save_uploadedfile(uploaded_file, file_directory)
-            output_file = filename
-            if Path(output_file).exists():
-                st.write(f"Output file exists {output_file}")
-                with VideoCap_Info.with_no_info() as cap:
-                    cap.setup_capture(filename)
-                    run_original_streamlit_video_mediapipe_main(cap, frame_processor)
-                if(filename is not None):
-                    display_download_buttons(frame_processor.get_dataframe(), os.path.join(file_directory, Path(filename).stem))
-            else:
-                st.write(f"Video file is not open {output_file}")
+             # Create a temporary file to store the uploaded video
+            tfile = tempfile.NamedTemporaryFile(delete=False) 
+            tfile.write(uploaded_file.read())
+    
+            with VideoCap_Info.with_no_info() as cap:
+                cap.setup_capture(tfile.name)
+                run_original_streamlit_video_mediapipe_main(cap, frame_processor)
+            if(filename is not None):
+                display_download_buttons(frame_processor.get_dataframe(), os.path.join(file_directory, "video_analysis_", Path(uploaded_file.name).stem))
+           
 
     elif (mode_src == 'Camera Capture'):
 
@@ -341,12 +367,6 @@ def main():
                 st.dataframe(stats_df, use_container_width=True)
                 file_directory = os.path.join(project_directory, ps._DF_STATS)
                 display_download_buttons(stats_df, os.path.join(file_directory, Path(uploaded_file.name).stem))
-
-
-
-
-
-
 
 if __name__ == '__main__':
     main()

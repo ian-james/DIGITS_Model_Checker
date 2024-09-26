@@ -81,6 +81,22 @@ def allow_download_button(file_path):
     with open(file_path, 'rb') as my_file:
         st.download_button(label='Download', data=my_file, file_name='filename.xlsx',
                        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        
+# Download an image file
+# File Formats
+#    # Change file_format to svg
+#     if file_format == 'svg':
+#         file_format = 'image/svg+xml'
+#     elif file_format == 'png':
+#         file_format = 'image/png'
+#     elif file_format == 'jpeg':
+#         file_format = 'image/jpeg'
+def download_image(image_path, file_name, file_format='image/png'):
+    with open(image_path, 'rb') as f:
+        image_bytes = f.read()
+ 
+    st.download_button(label='Download Image', data=image_bytes, file_name=file_name, mime=file_format)
+    
 
 def display_download_buttons(df, file_path):
     col1, col2 = st.columns([1, 1])

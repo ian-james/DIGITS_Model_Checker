@@ -344,7 +344,7 @@ class FrameProcessor:
         :param frame: The image frame to process.
         :param frame_id: An identifier for the frame.
         """
-        detection_results = self.process_detect_results(frame, frame_id)
+        detection_results = self.process_detection_results(frame)
         return self.process_image_drawing(frame, frame_id, detection_results)
 
     def finalize_dataframe(self):
