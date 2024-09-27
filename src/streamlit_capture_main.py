@@ -40,7 +40,7 @@ import project_settings as ps
 
 from streamlit_utils import save_uploadedfile,  display_download_buttons, download_image
 
-# Calculate Angles 
+# Calculate Angles
 from calculate_joints_and_length import convert_csv_with_xyz_to_landmarks, calculate_all_finger_angle_df
 
 import tempfile
@@ -99,7 +99,7 @@ def allow_download_button(file_path):
     with open(file_path, 'rb') as my_file:
         st.download_button(label='Download', data=my_file, file_name='filename.xlsx',
                        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        
+
 def convert_image_to_bytes(image, format='png'):
     """
     Converts an OpenCV image to a BytesIO object in the specified format.
@@ -114,7 +114,7 @@ def convert_image_to_bytes(image, format='png'):
     # Map file formats to their correct encoding string
     format = format.lower()
     valid_formats = {'png': '.png', 'jpg': '.jpg', 'jpeg': '.jpg', 'bmp': '.bmp', 'svg': '.svg'}
-    
+
     if format not in valid_formats:
         raise ValueError(f"Unsupported format: {format}. Supported formats: {list(valid_formats.keys())}")
 
@@ -122,7 +122,7 @@ def convert_image_to_bytes(image, format='png'):
     is_success, buffer = cv2.imencode(valid_formats[format], image)
     if not is_success:
         raise ValueError(f"Failed to encode image to {format.upper()} format.")
-    
+
     # Convert the buffer to BytesIO for download
     return BytesIO(buffer)
 
@@ -131,7 +131,7 @@ def run_original_streamlit_video_mediapipe_main(cap, frame_processor):
 
     # Streamlit UI Options.
     original_placeholder = st.empty()
-    frame_placeholder = st.empty()    
+    frame_placeholder = st.empty()
     with st.expander("See Data Table"):
         datatable_placeholder = st.empty()
 
@@ -150,17 +150,17 @@ def run_original_streamlit_video_mediapipe_main(cap, frame_processor):
                 logging.info("Finished the video.")
                 break
             else:
-                
+
                 logging.info("Ignoring empty camera frame.")
                 continue
 
         original_placeholder.image(image=image, caption="Original Image", channels="BGR")
-        
+
         bimage = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        
+
         results, rimage = frame_processor.process_frame(bimage,fps.total_num_frames)
         frame_placeholder.image(image=rimage, caption="Enhanced Image", channels="RGB")
-    
+
     st.write("## FINISHED ANALYSIS")
     frame_processor.finalize_dataframe()
     datatable_placeholder.dataframe(frame_processor.get_dataframe(), hide_index=True)  # You can also use st.write(df)
@@ -172,7 +172,7 @@ def load_data(filename):
     cols = convert_mp.convert_all_columns_to_friendly_name(df,[])
     df.columns = cols
     return df
-    
+
 # Function to compute the statistics
 # Compute the The standard error of the mean (SEM) is a measure of how much the sample mean is expected to vary from the true population mean.
 def sem(x):
@@ -185,11 +185,11 @@ def compute_statistics(df, exclude_columns=[]):
 
     # Exclude specific columns
     if exclude_columns:
-        df = df.drop(columns=exclude_columns, errors='ignore') 
+        df = df.drop(columns=exclude_columns, errors='ignore')
 
     # Compute the statistics for each column
-    stats_fun = ['max', 'min', 'mean', 'median', 'std'] #, sem] 
-    stats_df = df.agg(stats_fun)        
+    stats_fun = ['max', 'min', 'mean', 'median', 'std'] #, sem]
+    stats_df = df.agg(stats_fun)
 
     return stats_df
 
@@ -203,29 +203,28 @@ def anaysis_image(file_directory,filename, frame_processor):
             frame_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             results, rimage = frame_processor.process_frame(frame_rgb,0)
             st.image(image=rimage, caption="Enhanced Image", channels="RGB")
-          
 
             # Display the DataFrame
             st.write("## Frame Data")
             frame_processor.finalize_dataframe()
-            
+
             df = frame_processor.get_dataframe()
-            
+
             df.columns = convert_mp.convert_all_columns_to_friendly_name(frame_processor.get_dataframe(),['timestamp','time','handedness'])
-            st.dataframe(df, hide_index=True)    
-            
+            st.dataframe(df, hide_index=True)
+
             if(filename is not None):
                 display_download_buttons(frame_processor.get_dataframe(), os.path.join(file_directory, Path(filename).stem))
-            
+
             # Calculate the angles based on the landmarks
             df = convert_csv_with_xyz_to_landmarks(df)
-            
+
             fangles = calculate_all_finger_angle_df(df, None)
-            fdf = pd.DataFrame.from_dict(fangles)   
-            
+            fdf = pd.DataFrame.from_dict(fangles)
+
             st.write("## Angle Data")
             st.dataframe(fdf, hide_index=True)
-            
+
             # Download the angles files
             if(filename is not None):
                 display_download_buttons(fdf, os.path.join(file_directory,"angles_", Path(filename).stem))
@@ -273,18 +272,18 @@ def main():
                 # To read file as bytes:
                 file_directory = os.path.join(project_directory, ps._SAVED_IMAGES)
                 filename, result = save_uploadedfile(uploaded_file, file_directory)
-                
+
                 st.write(f"File saved: {filename}")
                 if (result):
                     anaysis_image(project_directory, filename, frame_processor)
 
     elif (mode_src == 'Camera'):
         with VideoCap_Info.with_no_info() as cap:
-            
+
             cap.setup_capture(-1)
             run_original_streamlit_video_mediapipe_main(cap, frame_processor)
         if(filename is not None):
-            display_download_buttons(frame_processor.get_dataframe(), os.path.join(file_directory, Path(filename).stem))        
+            display_download_buttons(frame_processor.get_dataframe(), os.path.join(file_directory, Path(filename).stem))
 
     elif (mode_src == 'Video'):
         title.title("Video Analysis")
@@ -294,15 +293,15 @@ def main():
         uploaded_file = st.file_uploader("Upload a video file", type=["mp4", "avi", "mov"])
         if (uploaded_file):
              # Create a temporary file to store the uploaded video
-            tfile = tempfile.NamedTemporaryFile(delete=False) 
+            tfile = tempfile.NamedTemporaryFile(delete=False)
             tfile.write(uploaded_file.read())
-    
+
             with VideoCap_Info.with_no_info() as cap:
                 cap.setup_capture(tfile.name)
                 run_original_streamlit_video_mediapipe_main(cap, frame_processor)
             if(filename is not None):
                 display_download_buttons(frame_processor.get_dataframe(), os.path.join(file_directory, "video_analysis_", Path(uploaded_file.name).stem))
-           
+
 
     elif (mode_src == 'Camera Capture'):
 
@@ -321,17 +320,18 @@ def main():
     if (mode_src == 'Graph Data'):
 
         # Streamlit application starts here
+
         st.title('Select File')
-        uploaded_file = st.sidebar.file_uploader("Upload a dataframe file (csv)", type=["csv"])        
-        if(uploaded_file):          
+        uploaded_file = st.sidebar.file_uploader("Upload a dataframe file (csv)", type=["csv"])
+        if(uploaded_file):
             # To read file as bytes:
             # file_directory = os.path.join(project_directory, "saved_data_frames")
-            # filename, result = save_uploadedfile(uploaded_file, file_directory)  
+            # filename, result = save_uploadedfile(uploaded_file, file_directory)
 
             st.write("### Data Preview")
-            df = load_data(uploaded_file)                   
+            df = load_data(uploaded_file)
             st.expander("Show Data", expanded=False).write(df)
-            cols = df.columns                
+            cols = df.columns
 
             st.write("### Select Columns to Graph")
             options_x_axis = st.selectbox('Select columns to plot on the x-axis',cols, key="x_axis")
@@ -342,15 +342,15 @@ def main():
                 options = options[:4]  # Keep only the first 4 selections
 
             # Checkbox to indicate if y-axis should be changed
-            yaxis_change = st.checkbox("Change y-axis range", value=False, key="yaxis_change")            
+            yaxis_change = st.checkbox("Change y-axis range", value=False, key="yaxis_change")
 
             # Plotting the selected columns
             if( (len(options_x_axis) >= 1)  and (len(options) >= 1)):
-                
+
                 fig = px.line(df, x=options_x_axis, y=options, color_discrete_sequence=px.colors.qualitative.Plotly)
                 # Draw a scatter plot of the options onto the figure
                 fig.update_traces(mode='markers+lines')
-                
+
                 # Add a line for the mean and median, the two should be included in a legend
                 for column in options:
                     fig.add_hline(y=df[column].mean(), line_dash="dot", line_color="green", annotation_text=f"Mean {column}", annotation_position="bottom right")
@@ -359,7 +359,7 @@ def main():
                 if(yaxis_change):
                     fig.update_yaxes(range=[0, 1])
                 st.plotly_chart(fig, use_container_width=True)
-      
+
             # Compute the statistics
             stats_df = compute_statistics(df, exclude_columns=['handedness','timestamp'])
             if(stats_df is not None):
