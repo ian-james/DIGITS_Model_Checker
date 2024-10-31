@@ -24,6 +24,8 @@ from mediapipe.tasks.python import vision
 from dataframe_actions import *
 from file_utils import *
 
+from stats_functions import sem
+
 from Capture_Info import *
 
 import matplotlib.pyplot as plt
@@ -172,11 +174,6 @@ def load_data(filename):
     cols = convert_mp.convert_all_columns_to_friendly_name(df,[])
     df.columns = cols
     return df
-
-# Function to compute the statistics
-# Compute the The standard error of the mean (SEM) is a measure of how much the sample mean is expected to vary from the true population mean.
-def sem(x):
-    return np.std(x, ddof=0) / np.sqrt(len(x))
 
 def compute_statistics(df, exclude_columns=[]):
 

@@ -96,11 +96,11 @@ def main():
     # Setup Arguments
     # args should be file_input and out_filename
     parser = argparse.ArgumentParser(description="Handle all the angle files.")
-    parser.add_argument("-f","--file", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Processed_Videos/analysis/nh_1_md_0.5_mt_0.5_mp_0.5/formatted_goniometry_measures.csv", help="Path to the input CSV file.")
+    parser.add_argument("-f","--file", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Analysis/test/individual_patients/their_49_combined_angles.csv", help="Path to the input CSV file.")
     #parser.add_argument("-o","--out_filename", type=str, default="vs_combine_output.csv", help="Path and filename for the converted video.")
-    parser.add_argument("-d","--directory", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Processed_Videos/analysis/nh_1_md_0.5_mt_0.5_mp_0.5/test", help='Output directory to save the files')
+    parser.add_argument("-d","--directory", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Analysis/test/individual_patients/C_49/", help='Output directory to save the files')
     parser.add_argument('-i', '--input', type=str, default="filename", help='Default column name to group by')
-    parser.add_argument("-m","--mfile", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Datasets/Processed_Videos/analysis/nh_1_md_0.5_mt_0.5_mp_0.5/all_angles_combined.csv", help="Path to the input CSV file.")
+    parser.add_argument("-m","--mfile", type=str, default="/home/jame/Projects/Western/Western_Postdoc/Analysis/test/individual_patients/my_49_combined_angles.csv", help="Path to the input CSV file.")
     parser.add_argument("-b", "--both_name", type=str, default="filename", help="Column name to group by in both files")
 
     # A group of strings can be passed as a list

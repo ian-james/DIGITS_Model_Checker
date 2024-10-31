@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 # Function to display usage information
 usage() {
     echo "Usage: $0 -d <csv_directory> -o <output_filename>"
@@ -7,8 +8,11 @@ usage() {
     echo "  -d  Directory containing CSV files"
     echo "  -o  Output filename for the combined CSV"
     echo "  -s  Save stats files to a differenet directory."
+    echo "  -m  Stats to save. max, min, mean, median, std, var"
     exit 1
 }
+
+stats="mean"
 
 # Parse command-line options
 while getopts "d:o:s:m:h" opt; do
@@ -37,7 +41,6 @@ fi
 output_directory=$(dirname "$output_filename")
 mkdir -p "$output_directory"
 
-
 echo "stats '$stats_dir'"
 
 if [ -z "$stats_dir" ]; then
@@ -55,4 +58,3 @@ echo "Combining CSV files..."
 python ./src/combine_csvs_main.py -d "$csv_directory" -o "$output_filename" -s "$stats_dir" -m "$stats"
 
 echo "Process completed."
-

@@ -5,20 +5,13 @@ import logging
 import streamlit as st
 import numpy as np
 import plotly.express as px
-
-from fps_timer import FPS
+import pandas as pd
 import matplotlib.pyplot as plt
 
-import pandas as pd
-
+from fps_timer import FPS
 import convert_mediapipe_index as convert_mp
 
-from scipy import stats
-
-from streamlit_utils import save_uploadedfile, download_dataframe, display_download_buttons
-
-from mediapipe_helpers import *
-from fps_timer import FPS
+from streamlit_utils import display_download_buttons
 
 import project_settings as ps
 
@@ -29,8 +22,6 @@ def run_original_streamlit_video_mediapipe_main(cap, frame_processor):
     with st.expander("See Data Table"):
         datatable_placeholder = st.empty()
 
-    fps_text = st.empty()
-
     fps = FPS()
     fps.start()
 
@@ -40,14 +31,14 @@ def run_original_streamlit_video_mediapipe_main(cap, frame_processor):
         fps.update()
 
         if not success:
-            if(cap.is_video()):
+            if  cap.is_video():
                 logging.info("Finished the video.")
                 break
             else:
                 logging.info("Ignoring empty camera frame.")
                 continue
 
-        results, rimage = frame_processor.process_frame(image,fps.total_num_frames)
+        _ , rimage = frame_processor.process_frame(image,fps.total_num_frames)
         frame_placeholder.image(image=rimage, caption="Enhanced Image", channels="BGR")
 
     st.write("## FINISHED ANALYSIS")
@@ -55,7 +46,7 @@ def run_original_streamlit_video_mediapipe_main(cap, frame_processor):
     return frame_processor.get_dataframe()
 
 
-def draw_histogram_and_qq_plots(data, distribution, colors):
+def draw_histogram_and_qq_plots(data, colors):
 
     # Plot the histogram
     for i, column in enumerate(data.columns):
@@ -63,22 +54,10 @@ def draw_histogram_and_qq_plots(data, distribution, colors):
         plt.legend()
         plt.show()
 
-# def save_uploadedfile(uploadedfile, folder='tempDir'):
-#     try:
-#         with open(os.path.join(folder, uploadedfile.name), "wb") as f:
-#             f.write(uploadedfile.getbuffer())
-#         return os.path.join(folder, uploadedfile.name), True
-#     except Exception as e:
-#         return str(e), False
-
-# Function to compute the statistics
-# Compute the The standard error of the mean (SEM) is a measure of how much the sample mean is expected to vary from the true population mean.
-def sem(x):
-    return np.std(x, ddof=0) / np.sqrt(len(x))
 
 def compute_statistics(df, exclude_columns=[]):
 
-    if( df is None):
+    if   df is None:
         return None
 
     # Exclude specific columns
@@ -97,7 +76,6 @@ def load_data(filename):
     cols = convert_mp.convert_all_columns_to_friendly_name(df,[])
     df.columns = cols
     return df
-
 
 def main():
 
@@ -120,12 +98,12 @@ def main():
     debug_expander.selectbox("Set the logging level", debug_levels)
 
 
-    if (mode_src == 'Graph Data'):
+    if mode_src == 'Graph Data':
 
         # Streamlit application starts here
         st.title('Select File')
         uploaded_file = st.sidebar.file_uploader("Upload a dataframe file (csv)", type=["csv"])
-        if(uploaded_file):
+        if  uploaded_file:
             # To read file as bytes:
             # file_directory = os.path.join(project_directory, "saved_data_frames")
             # filename, result = save_uploadedfile(uploaded_file, file_directory)
@@ -147,7 +125,7 @@ def main():
             yaxis_change = st.checkbox("Change y-axis range", value=False, key="yaxis_change")
 
             # Plotting the selected columns
-            if( (len(options_x_axis) >= 1)  and (len(options) >= 1)):
+            if   (len(options_x_axis) >= 1)  and (len(options) >= 1):
                 fig = px.line(df, x=options_x_axis, y=options, color_discrete_sequence=px.colors.qualitative.Plotly)
                 # Draw a scatter plot of the options onto the figure
                 fig.update_traces(mode='markers+lines')
@@ -157,13 +135,13 @@ def main():
                     fig.add_hline(y=df[column].mean(), line_dash="dot", line_color="green", annotation_text=f"Mean {column}", annotation_position="bottom right")
                     fig.add_hline(y=df[column].median(), line_dash="dot", line_color="red", annotation_text=f"Median {column}", annotation_position="top right")
 
-                if(yaxis_change):
+                if  yaxis_change:
                     fig.update_yaxes(range=[0, 1])
                 st.plotly_chart(fig, use_container_width=True)
 
             # Compute the statistics
             stats_df = compute_statistics(df, exclude_columns=['handedness','timestamp','filename'])
-            if(stats_df is not None):
+            if  stats_df is not None:
                 st.write("### Statistics")
                 st.dataframe(stats_df, use_container_width=True)
                 file_directory = os.path.join(project_directory, ps._DF_STATS)
@@ -172,4 +150,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

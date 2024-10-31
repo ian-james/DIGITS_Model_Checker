@@ -1,9 +1,8 @@
 import os
-from enum import Enum
 import time
+import logging
 
 import pandas as pd
-import logging
 
 # A function to clean spaces in a string and replace them with underscores
 def clean_spaces(string):
@@ -26,7 +25,7 @@ def change_extension(file_path, extension="csv"):
     return new_file_path
 
 def add_extension(filename, extension=".csv"):
-    basename, ext = os.path.splitext(filename)
+    _, ext = os.path.splitext(filename)
     if ext == extension:
         return filename
     else:
@@ -147,4 +146,3 @@ def read_file_to_dataframe(file_path):
         raise ValueError(
             "File format not supported. Only .csv, .xls, and .xlsx files are supported.")
     return df
-

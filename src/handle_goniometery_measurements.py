@@ -6,12 +6,12 @@
 # Import the necessary libraries
 import os
 import argparse
-import pandas as pd
-from file_utils import setupAnyCSV, clean_spaces
-from convert_mediapipe_index import real_world_landmark_names, convert_real_finger_name_to_mediapipe_name_within_string, convert_real_joint_name_to_mediapipe_name_within_string
 import re
+import pandas as pd
+from file_utils import setupAnyCSV
 
-from hand_file_builder import *
+from convert_mediapipe_index import real_world_landmark_names, convert_real_finger_name_to_mediapipe_name_within_string, convert_real_joint_name_to_mediapipe_name_within_string, get_joint_names
+from hand_file_builder import build_nvp_group_names, is_left_hand, is_extension_file, is_flexion_file, is_intrinsic_minus_file
 
 # ID	Index MP joint (flexion)	Index PIP joint (flexion)	Index DIP joint (flexion)	Long MP joint (flexion)	Long PIP joint (flexion)	Long DIP joint (flexion)	Ring MP joint (flexion)	Ring PIP joint (flexion)	Ring DIP joint (flexion)	Little MP joint (flexion)	Little PIP joint (flexion)	Little DIP joint (flexion)	Thumb MP joint (flexion)	Thumb IP joint (flexion)	Index MP joint (extension)	Index PIP joint (extension)	Index DIP joint (extension)	Long MP joint (extension)	Long PIP joint (extension)	Long DIP joint (extension)	Ring MP joint (extension)	Ring PIP joint (extension)	Ring DIP joint (extension)	Little MP joint (extension)	Little PIP joint (extension)	Little DIP joint (extension)	Thumb MP joint (extension)	Thumb IP joint (extension)	Thumb abduction	Thumb opposition	Thumb circumduction:
 
@@ -19,25 +19,25 @@ from hand_file_builder import *
 def check_keywords(column_name, keywords):
     return any(keyword.lower() in column_name.lower() for keyword in keywords)
     # v = (keyword.lower() in column_name.lower() for keyword in keywords)
-    # if( not any(v)):
+    # if  not any(v)):
     #     print(f"Column name: {column_name}")
     # return any(v)
 
 def separate_row_by_pose(row, filename):
     pdf = row
-    if(is_extension_file(filename)):
-        # Select only the columns that are extension                    
+    if is_extension_file(filename):
+        # Select only the columns that are extension
         pdf = row.filter(regex='extension|Ext', axis=0)
 
-    if(is_flexion_file(filename)):
+    if is_flexion_file(filename):
         # Select only the columns that are flexion
         pdf = row.filter(regex='flexion|flex|Fist', axis=0)
 
-    if(is_intrinsic_minus_file(filename)):
+    if is_intrinsic_minus_file(filename):
         # Select only the columns that are intrinsic minus
         pdf = row.filter(regex='intrinsic minus|intrinsic_minus|IM', axis=0)
-    
-    return pdf   
+
+    return pdf
 
 def process_goniometry_measurement_file(input_file, has_left_file, is_left=False):
     try:
@@ -63,11 +63,11 @@ def process_goniometry_measurement_file(input_file, has_left_file, is_left=False
         print(df.head())
 
         # Get setup for the file names based on the hand, view, and pose
-        if( not has_left_file):
+        if  not has_left_file:
             hand_view_pose_group = build_nvp_group_names(include_im=False)
         else:
             # remove all the strings that have LT in them
-            if( is_left):
+            if  is_left:
                 hand_view_pose_group = [x for x in build_nvp_group_names(False) if is_left_hand(x)]
             else:
                 hand_view_pose_group = [x for x in build_nvp_group_names(False) if not is_left_hand(x)]
@@ -79,8 +79,7 @@ def process_goniometry_measurement_file(input_file, has_left_file, is_left=False
         second_half_columns = df.columns[1:].values.tolist()
         ndf = pd.DataFrame(columns=['id','filename', 'nh', 'md', 'mt', 'mp', 'model'])
 
-    
-        for index, row in df.iterrows():
+        for _, row in df.iterrows():
             # Get the first column value
             first_column_value = row.iloc[0]
 
@@ -89,11 +88,11 @@ def process_goniometry_measurement_file(input_file, has_left_file, is_left=False
 
             #include the setup information as well
             for hvp in hand_view_pose_group:
-                id =int(first_column_value),
+                mid =int(first_column_value),
                 filename = f"DIGITS_CJ_{str(int(first_column_value))}_{hvp}.csv"
                 #print(f"Filename: {filename}")
                 item = {
-                        'id': id[0],
+                        'id': mid[0],
                         'filename': filename,
                         'nh': 1,
                         'md': 0.5,
@@ -103,14 +102,14 @@ def process_goniometry_measurement_file(input_file, has_left_file, is_left=False
                 }
 
                 second_half_df = pd.DataFrame(row[1:]).T
-              
+
                 second_half_df = second_half_df.apply(lambda row: separate_row_by_pose(row, hvp), axis=1)
                 second_half_columns = [re.sub(r'\(.*\)', '', x) for x in second_half_df.columns]
                 # Remove the word 'joint' from the columns
-                second_half_columns = [re.sub(r'joint', '', x).strip() for x in second_half_columns]                 
+                second_half_columns = [re.sub(r'joint', '', x).strip() for x in second_half_columns]
 
                     # Change Fingernames to Mediapipe names for the fingers and then followed by the joints.
-                second_half_columns = [convert_real_finger_name_to_mediapipe_name_within_string(col) for col in second_half_columns] 
+                second_half_columns = [convert_real_finger_name_to_mediapipe_name_within_string(col) for col in second_half_columns]
                 second_half_columns = [convert_real_joint_name_to_mediapipe_name_within_string(col) for col in  second_half_columns]
                 second_half_df.columns = second_half_columns
 
@@ -118,7 +117,7 @@ def process_goniometry_measurement_file(input_file, has_left_file, is_left=False
                 mediapipe_order = list(get_joint_names().values())
                 #Check if CMC mediapipe order is in the columns
                 if not mediapipe_order[0] in second_half_df.columns:
-                    # Not working with correct columns, so skip CMC                                        
+                    # Not working with correct columns, so skip CMC
                     mediapipe_order = mediapipe_order[1:]
 
                 # Check if number of columns are equal
@@ -133,10 +132,35 @@ def process_goniometry_measurement_file(input_file, has_left_file, is_left=False
                 item_df = pd.DataFrame([item])
                 sdf = pd.concat([item_df, second_half_df ], axis=1)
                 ndf = pd.concat([ndf, sdf], axis=0, ignore_index=True)
-               
+
         ndf.dropna(axis=0)
         print(f"Final Dataframe shape: {df.shape}")
         return ndf
+
+    except Exception as e:
+        print(f"Error: {e}")
+        raise
+
+def build_goniometry_dataframe(input_file, output_file, left_file, left_file_exists):
+    try:
+        df = process_goniometry_measurement_file(input_file, left_file_exists)
+        if left_file_exists:
+            left_df = process_goniometry_measurement_file(left_file, left_file_exists)
+            df = pd.concat([df, left_df], axis=0, ignore_index=True)
+            # Sort the dataframe by the index and filename
+            # Sort by 'Index' and then by 'Filename' using natural sorting
+            df = df.sort_values(by=['id','filename'])
+
+        # Drop the index column and save
+        df.drop(columns=['id'], inplace=True)
+
+
+        # Save the file
+        if output_file != "":
+            df.to_csv(output_file, index=False)
+            print(f"Saved file to {output_file}")
+
+        return df
 
     except Exception as e:
         print(f"Error: {e}")
@@ -146,11 +170,11 @@ def main():
      # Setup Arguments
     parser = argparse.ArgumentParser(description="Split a CSV file into multiple files based on a column value.")
     #parser.add_argument("-i", "--input_file", type=str, default="datasets/uwo/goniometry_measured.csv", help="Path to the input CSV file.")
-    parser.add_argument("-i", "--input_file", type=str, default="datasets/uwo/DIGITS_Right_Hand_Goniometry_Measurements.csv", help="Path to the input CSV file.")    
+    parser.add_argument("-i", "--input_file", type=str, default="datasets/uwo/DIGITS_Right_Hand_Goniometry_Measurements.csv", help="Path to the input CSV file.")
     parser.add_argument("-o", "--output_file", type=str, default="datasets/uwo/formatted_goniometry_measures.csv", help="Directory to save the split files.")
     parser.add_argument("-l", "--left_file", type=str, default="datasets/uwo/DIGITS_Left_Hand_Goniometry_Measurements.csv", help="Potentially load left and right separately, right is the default")
     #parser.add_argument("-l", "--left_file", type=str, default="", help="Potentially load left and right separately, right is the default")
-    
+
     args = vars(parser.parse_args())
 
     input_file = args['input_file']
@@ -163,29 +187,15 @@ def main():
         print(f"File not found: {input_file}")
         return
 
-    if( left_file != ""):
+    if left_file != "":
         if not os.path.exists(left_file):
             print(f"File not found: {left_file}")
             return
 
     try:
-       
-        df = process_goniometry_measurement_file(input_file, left_file_exists, is_left=False)
-        #df.to_csv("datasets/uwo/right.csv", index=False)
-        if( left_file != ""):
-            left_df = process_goniometry_measurement_file(left_file, left_file_exists, is_left=True)
-            #left_df.to_csv("datasets/uwo/left.csv", index=False)
-            df = pd.concat([df, left_df], axis=0, ignore_index=True)            
-            # Sort the dataframe by the index and filename
-            # Sort by 'Index' and then by 'Filename' using natural sorting
-            df = df.sort_values(by=['id','filename'])
-
-        # Drop the index column and save
-        df.drop(columns=['id'], inplace=True)
-        print(f"Final Dataframe shape: {df.shape}")        
-        df.to_csv(output_file, index=False)
+        df = build_goniometry_dataframe(input_file, output_file, left_file, left_file_exists)
+        print(f"Final Dataframe shape: {df.shape}")
         print(f"Saved file to {output_file}")
-
     except Exception as e:
         print(f"Error: {e}")
         return

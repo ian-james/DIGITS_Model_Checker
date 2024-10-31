@@ -1,8 +1,4 @@
-import pandas as pd
-import logging
 from enum import Enum, auto
-from pprint import pprint
-
 import re
 class Digit(Enum):
     Wrist = auto()
@@ -63,15 +59,15 @@ def get_landmark_name(index):
     return landmarks.get(index, "Unknown Landmark")
 
 def get_landmark_xyz_name(index):
-    landmark_name = get_landmark_name(index)    
+    landmark_name = get_landmark_name(index)
     return [f"{landmark_name} ({coordinate}-coordinate)" for coordinate in ["X", "Y", "Z"]]
 
-def get_all_landmarks_xyz_names():    
+def get_all_landmarks_xyz_names():
     all_landmarks = []
     for i in range(21):
         all_landmarks += get_landmark_xyz_name(i)
     return all_landmarks
-    
+
 def real_world_landmark_names():
     return real_world_extension_names() + real_world_flexion_names()
 
@@ -111,22 +107,11 @@ def convert_real_world_finger_name_to_mediapipe_name(real_world_name):
 
 def mediapipe_index_order_in_real_world():
     return [1, 2, 3, 4, 0]
-    
+
 def convert_real_world_finger_name_to_mediapipe_index(real_world_name):
     creal = convert_real_world_finger_name_to_mediapipe_name(real_world_name)
     # Safely find the index of the finger in the mediapipe order
     return mediapipe_finger_order().index(creal)
-
-
-def convert_real_world_to_mediapipe_index(real_world_name):
-
-    # parts = real_world_name.split(" ")
-    # if len(parts) == 4:
-    #     finger, joint, _,  flexion  = parts
-        
-    #     finger_joint_idx = get_joint_index(f"{finger} {joint}") 
-
-    pass
 
 def convert_real_world_finger_name_to_sasha_name(real_world_name):
     c = {
@@ -224,7 +209,7 @@ def convert_real_joint_name_to_mediapipe_name_within_string(real_name):
 
     # Find all matches
     matches = re.findall(pattern, real_name)
-    
+
     for joint in matches:
         return real_name.replace(joint, convert_real_world_joint_name_to_mediapipe_name(joint))
 
@@ -262,16 +247,16 @@ def convert_to_friendly_name(coordinate_str):
             return coordinate_str
     else:
         return coordinate_str
-    
+
 
 def save_user_friendly(filename, df):
     if(df is not None):
         # Save the DataFrame to a CSV file
         df = convert_all_columns_to_friendly_name(df,[])
-        df.to_csv(filename, index=False)    
-        logging.info(f"Saved user friendly file to {filename}")
+        df.to_csv(filename, index=False)
+        print(f"Saved user friendly file to {filename}")
     else:
-        logging.error(f"Failed to save user friendly file to {filename}")
+        print(f"Failed to save user friendly file to {filename}")
 
 # if __name__ == "__main__":
 #     # Example usage
@@ -296,7 +281,7 @@ def get_wrist_index():
 
 def get_thumb_indices():
     return [1, 2, 3, 4]
-    
+
 def get_index_finger_indices():
     return [5, 6, 7, 8]
 
@@ -327,7 +312,7 @@ def get_all_fingers_indices(add_wrist_to_indices=False, add_wrist = False):
 ########################################################################################################
 def test_main():
     test_index_finger_indices()
-    test_all_fingers_indices()    
+    test_all_fingers_indices()
 
 def test_index_finger_indices():
     expected_indices = [5, 6, 7, 8]
@@ -354,4 +339,4 @@ def test_all_fingers_indices():
 ########################################################################################################
 if __name__ == "__main__":
     test_main()
-    
+

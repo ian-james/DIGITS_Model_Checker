@@ -33,7 +33,6 @@ def main():
         df = setupAnyCSV(input_file,None)
         df = df.dropna(axis=1, how='all')
 
-
         # Strip whitespace and check if the last column contains only empty strings or whitespace
         # There appears to be an extra column with just spaces (fix for that)
         if df.iloc[:, -1].str.strip().eq('').all():
